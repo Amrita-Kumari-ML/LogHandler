@@ -1,0 +1,113 @@
+version: "3.8"
+
+services:
+  loggenerator:
+    build:
+      context: .
+      dockerfile: Dockerfile.loggenerator
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=example
+      - DB_NAME=logsdb
+    depends_on:
+      - db
+
+  logparser:
+    build:
+      context: .
+      dockerfile: Dockerfile.logparser
+    ports:
+      - "8082:8082"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=example
+      - DB_NAME=logsdb
+    depends_on:
+      - db
+
+  logprocessor:
+    build:
+      context: .
+      dockerfile: Dockerfile.logprocessor
+    ports:
+      - "8083:8083"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=example
+      - DB_NAME=logsdb
+    depends_on:
+      - db
+
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: logsdb
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pg_data:
+    driver: local
+
+
+#  loggenerator:
+#   build:
+#      context: ./LogGenerator  # Path to LogGenerator service
+#    ports:
+#      - "8080:8080"
+#    networks:
+#      - backend
+
+#  logparser:
+#    build:
+#      context: ./LogParser  # Path to LogParser service
+#    ports:
+#      - "8082:8082"
+#    networks:
+#      - backend
+
+#  logprocessor:
+#    build:
+#      context: ./LogProcessor  # Path to LogProcessor service
+#    ports:
+#      - "8083:8083"
+#    environment:
+#      - DB_HOST=postgres
+#      - DB_PORT=5432
+#      - DB_USER=postgres
+#      - DB_PASSWORD=example
+#      - DB_NAME=mydatabase
+#    depends_on:
+#      - postgres
+#    networks:
+#      - backend
+
+#  postgres:
+#    image: postgres:latest
+#    environment:
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: example
+#      POSTGRES_DB: mydatabase
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#    networks:
+#      - backend
+#    ports:
+#      - "5432:5432"
+
+#networks:
+#  backend:
+#    driver: bridge
+
