@@ -1,78 +1,107 @@
+# Loggenerate Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "loghandler.fullname" . }}
-  labels:
-    {{- include "loghandler.labels" . | nindent 4 }}
+  name: loggenerate
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: {{ .Values.loggenerate.replicaCount }}
   selector:
     matchLabels:
-      {{- include "loghandler.selectorLabels" . | nindent 6 }}
+      app: loggenerate
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        {{- include "loghandler.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        app: loggenerate
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "loghandler.serviceAccountName" . }}
-      {{- with .Values.podSecurityContext }}
-      securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
-          {{- with .Values.securityContext }}
-          securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        - name: loggenerate
+          image: "{{ .Values.loggenerate.image.repository }}:{{ .Values.loggenerate.image.tag }}"
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          {{- with .Values.livenessProbe }}
-          livenessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.volumeMounts }}
-          volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.volumes }}
-      volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+            - containerPort: {{ .Values.loggenerate.port }}
+          env:
+            - name: CURRENT_SERVICE_GENERATE_LOGS
+              value: {{ .Values.loggenerate.env.CURRENT_SERVICE_GENERATE_LOGS }}
+            - name: CURRENT_SERVICE_IS_ALIVE
+              value: {{ .Values.loggenerate.env.CURRENT_SERVICE_IS_ALIVE }}
+            - name: CURRENT_SERVICE_PORT
+              value: {{ .Values.loggenerate.env.CURRENT_SERVICE_PORT }}
+            - name: PARSER_SERVICE_API
+              value: {{ .Values.loggenerate.env.PARSER_SERVICE_API }}
+            - name: RATE
+              value: {{ .Values.loggenerate.env.RATE }}
+            - name: UNIT
+              value: {{ .Values.loggenerate.env.UNIT }}
+
+# Logparser Deployment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logparser
+spec:
+  replicas: {{ .Values.logparser.replicaCount }}
+  selector:
+    matchLabels:
+      app: logparser
+  template:
+    metadata:
+      labels:
+        app: logparser
+    spec:
+      containers:
+        - name: logparser
+          image: "{{ .Values.logparser.image.repository }}:{{ .Values.logparser.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.logparser.port }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.logparser.env.SERVER_PORT }}
+            - name: DB_HOST
+              value: {{ .Values.logparser.env.DB_HOST }}
+            - name: DB_PORT
+              value: {{ .Values.logparser.env.DB_PORT }}
+            - name: DB_USER
+              value: {{ .Values.logparser.env.DB_USER }}
+            - name: DB_PASSWORD
+              value: {{ .Values.logparser.env.DB_PASSWORD }}
+            - name: DB_NAME
+              value: {{ .Values.logparser.env.DB_NAME }}
+            - name: LOGGING_LEVEL
+              value: {{ .Values.logparser.env.LOGGING_LEVEL }}
+            - name: LOGGING_FORMAT
+              value: {{ .Values.logparser.env.LOGGING_FORMAT }}
+            - name: LOG_FILE
+              value: {{ .Values.logparser.env.LOG_FILE }}
+            - name: API_PATH
+              value: {{ .Values.logparser.env.API_PATH }}
+            - name: API_METHOD
+              value: {{ .Values.logparser.env.API_METHOD }}
+
+# Postgres Deployment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: {{ .Values.postgres.replicaCount }}
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.postgres.port }}
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.env.POSTGRES_USER }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.postgres.env.POSTGRES_PASSWORD }}
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.env.POSTGRES_DB }}

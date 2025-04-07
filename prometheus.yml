@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s  # Scrape every 15 seconds
+
+scrape_configs:
+  - job_name: 'loggenerate'  # For the loggenerate service
+    static_configs:
+      - targets: ['loggenerate:8081']  # Scrape metrics from loggenerate on port 8081
+
+  - job_name: 'logparser'  # For the logparser service
+    static_configs:
+      - targets: ['logparser:8082']  # Scrape metrics from logparser on port 8082
