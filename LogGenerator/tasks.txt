@@ -1,0 +1,32 @@
+TODO
+-> 
+
+
+
+
+
+- Generates logs in the Nginx log format at a rate defined by the environment variable RATE (e.g., 100/s, 2000/h, 300/m).
+- Sends the generated logs to the Log Parser Server via HTTP calls.
+
+- export RATE=20
+- export UNIT="s"
+- go run main.go
+
+- API end point to check for alive : http://localhost:8080/
+- API end point to generate logs : http://localhost:8080/logs
+
+- 
+curl -X POST http://localhost:8080/logs \
+     -H "Content-Type: application/json" \
+     -d '{"num_logs": 10, "time": "s"}'
+
+
+
+cd LogGenerator
+docker build -t loggenerator .
+
+docker run -p 8080:8080 loggenerator
+
+
+
+

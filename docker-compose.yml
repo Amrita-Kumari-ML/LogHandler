@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  loggenerate:
+    container_name: loggenerate
+    build:
+      context: /home/amrita_kumari/LogHandler/LogGenerator
+      dockerfile: Dockerfile 
+    ports:
+      - "8081:8081"
+    environment:
+      - GENERATOR_HOST=${GENERATOR_HOST}
+      - GENERATOR_PORT=${GENERATOR_PORT}
+      - GENERATOR_ALIVE_URL=${GENERATOR_ALIVE_URL}
+      - GENERATOR_START_URL=${GENERATOR_START_URL}
+      - PARSER_API=${PARSER_API}
+      - GENERATOR_RATE=${GENERATOR_RATE}
+      - GENERATOR_UNIT=${GENERATOR_UNIT}
+    restart: on-failure
+    depends_on:
+      - logparser
+    networks:
+      - lognetwork
+
+  logparser:
+    container_name: logparser
+    build:
+      context: /home/amrita_kumari/LogHandler/LogParser
+      dockerfile: Dockerfile 
+    ports:
+      - "8082:8082"
+    environment:
+      - PARSER_HOST=${PARSER_HOST}
+      - PARSER_PORT=${PARSER_PORT}
+      - PARSER_ALIVE_URL=${PARSER_ALIVE_URL}
+      - PARSER_ADD_URL=${PARSER_ADD_URL}
+      - PARSER_GET_URL=${PARSER_GET_URL}
+      - PARSER_GET_COUNT_URL=${PARSER_GET_COUNT_URL}
+      - PARSER_DELETE_URL=${PARSER_DELETE_URL}
+
+      - DB_PORT=${DB_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_SSLMODE=${DB_SSLMODE}
+    volumes:
+      - log_data:/app/data
+    restart: on-failure
+    depends_on:
+      - postgres
+    networks:
+      - lognetwork
+
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lognetwork
+
+ # Prometheus Service - for monitoring
+  prometheus:
+    image: prom/prometheus:v2.25.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Prometheus config file
+    networks:
+      - lognetwork
+
+  # Grafana Service - for visualizing metrics
+  grafana:
+    image: grafana/grafana:7.3.1
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin  # Set Grafana admin password
+    ports:
+      - "3000:3000"  # Grafana UI port
+    networks:
+      - lognetwork
+    depends_on:
+      - prometheus
+      
+networks:
+  lognetwork:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  log_data:  # Define volume for storing rate and unit data
+    driver: local

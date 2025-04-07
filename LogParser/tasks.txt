@@ -1,0 +1,4 @@
+docker build -t loggenerate-app .
+
+docker run -d -p 8081:8081 loggenerate-app
+f5e45ac2349b873ad25473556546aec2819cc8e8846c4834b2aa3bef0dd67c04

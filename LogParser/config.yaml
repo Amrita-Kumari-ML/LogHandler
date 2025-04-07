@@ -1,0 +1,10 @@
+# config.yaml
+
+PORT: ":8083"
+#ALIVE_URL: "/"
+#MAIN_URL: "/logs"
+#COUNT_URL: "/logs/count"
+
+
+
+
