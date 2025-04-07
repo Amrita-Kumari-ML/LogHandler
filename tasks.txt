@@ -1,0 +1,49 @@
+TODO:
+-> gracefully handle the environment variables
+-> communication between Docker’s (via internal call service names , via unix socket)
+-> database backoff (keep trying to connect to database infinitely at some period of time like 5 minute or so...)
+(github.com/cenkalti/backoff)
+-> filter the results based on pagination and load the data based on given time stamp start to end time from database
+-> gracefully shutdown the docker compose 
+
+services:
+  app1:
+    restart: on-failure
+  app2:
+    restart: on-failure
+  postgres:
+    restart: unless-stopped
+
+func main(){
+    srv := &http.Server{Addr: ":8080"}
+    // Handle shutdown gracefully
+    go func() {
+        if err := srv.ListenAndServe(); err != nil {
+            log.Fatal(err)
+        }
+    }()
+
+    // Wait for interrupt signal to gracefully shutdown the server
+    sigs := make(chan os.Signal, 1)
+    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+    <-sigs
+
+    log.Println("Shutting down server...")
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    if err := srv.Shutdown(ctx); err != nil {
+        log.Fatal("Server shutdown failed:", err)
+    }
+    log.Println("Server gracefully stopped")
+}
+
+
+
+http://localhost:3000/
+
+
+http://localhost:8081/metrics
+
+
+http://localhost:9090/targets
+

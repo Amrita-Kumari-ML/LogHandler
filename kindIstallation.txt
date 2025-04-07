@@ -1,0 +1,43 @@
+# Install curl if it's not already installed
+sudo apt update
+sudo apt install curl
+
+# Download the latest kind release
+curl -Lo /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.14.0/kind-linux-amd64
+
+# Set execution permissions
+sudo chmod +x /usr/local/bin/kind
+
+# Verify the kind version
+kind --version
+
+# Create the Kubernetes cluster using kind
+kind create cluster
+
+# Verify the cluster status
+kubectl cluster-info
+
+# Check Docker containers running for the kind cluster
+docker ps
+
+# Optionally delete the kind cluster
+kind delete cluster
+
+------------------------------------------------------------------------------------------------------------
+# Install required packages
+sudo apt install apt-transport-https ca-certificates curl software-properties-common
+
+# Add Docker’s official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+# Set up Docker stable repository
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+# Install Docker
+sudo apt update
+sudo apt install docker-ce
+
+# Verify Docker installation
+sudo systemctl start docker
+sudo systemctl enable docker
+docker --version

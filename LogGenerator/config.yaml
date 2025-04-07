@@ -1,0 +1,14 @@
+# currentService Server Configuration for constant values 
+currentService:
+  KEY_START_URL : "/logs"
+  KEY_ALIVE_URL : "/"
+  KEY_PORT : ":8080"
+
+parserService:
+#ENV PARSER_SERVICE_API="http://logparser:8082/logs"
+  KEY_PARSER_API : "http://localhost:8083/logs"
+
+#Current service configuration
+KEY_RATE : 10
+KEY_UNIT : "s"
+
