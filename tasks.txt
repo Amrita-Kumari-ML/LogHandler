@@ -41,9 +41,7 @@ func main(){
 
 http://localhost:3000/
 
-
 http://localhost:8081/metrics
-
 
 http://localhost:9090/targets
 

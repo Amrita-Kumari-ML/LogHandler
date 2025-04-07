@@ -1,3 +1,7 @@
+# Log Handler
+
+# Log Generator
+
 # LogParser
 
 **LogParser** is a Go-based HTTP server application designed to parse and manage web logs stored in a PostgreSQL database. It allows you to filter, retrieve, count, add, and delete logs from the database using a set of flexible RESTful API endpoints. 
