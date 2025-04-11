@@ -3,11 +3,12 @@
 package connection
 
 import (
+	"LogParser/logger"
 	"LogParser/models"
 	"LogParser/utils"
 	"database/sql"
 	"fmt"
-	"log"
+	_ "log"
 
 	_ "github.com/lib/pq" // Importing the Postgres driver
 )
@@ -23,7 +24,7 @@ func InitDB() *sql.DB {
 	// Load configuration settings
 	err1 := FirstLoad()
 	if err1 != nil {
-		log.Fatalf("Configuration not loaded. Exiting...\n")
+		logger.LogError("Configuration not loaded. Exiting...\n")
 		return nil
 	}
 
@@ -42,9 +43,9 @@ func InitDB() *sql.DB {
 	)
 
 	// Open the database connection
-	DB, err = sql.Open(utils.DB_HOST, connStr)
+	DB, err = sql.Open(utils.DB_USERNAME, connStr)
 	if err != nil {
-		log.Fatalf("Error connecting to the database: %v\n", err)
+		logger.LogError(fmt.Sprintf("Error connecting to the database: %v\n", err))
 	}
 
 	// Check if the connection to the database is successful
@@ -61,18 +62,18 @@ func InitDB() *sql.DB {
 // and the database connection object.
 func PingDB() (bool, *sql.DB) {
 	if DB == nil {
-		log.Println("Database connection is nil.")
+		logger.LogError("Database connection is nil.")
 		return false, nil
 	}
 
 	// Ping the database to check if it's reachable
 	err := DB.Ping()
 	if err != nil {
-		log.Fatalf("Error pinging the database: %v\n", err)
+		logger.LogError(fmt.Sprintf("Error pinging the database: %v\n", err))
 		return false, nil
 	}
 
-	log.Println("Successfully connected to the database!")
+	logger.LogInfo("Successfully connected to the database!")
 	return true, DB
 }
 
@@ -84,16 +85,31 @@ func createLogsTableIfNotExist(config models.DB_Config) {
 	err := DB.QueryRow(`SELECT table_name FROM information_schema.tables WHERE table_name = $1`, config.Logs.TableName).Scan(&tableName)
 	if err == sql.ErrNoRows {
 		// Table doesn't exist, so create it
-		log.Println("Logs table doesn't exist, creating it...")
+		logger.LogDebug("Logs table doesn't exist, creating it...")
 		_, err = DB.Exec(config.Logs.CreateTableQuery)
 		if err != nil {
-			log.Fatalf("Error creating the logs table: %v\n", err)
+			logger.LogError(fmt.Sprintf("Error creating the logs table: %v\n", err))
 		}
-		log.Println("Logs table created successfully!")
+		indexExists("idx_time_local")
+		logger.LogDebug("Logs table created successfully!")
 	} else if err != nil {
-		log.Fatalf("Error checking if logs table exists: %v\n", err)
+		logger.LogDebug(fmt.Sprintf("Error checking if logs table exists: %v\n", err))
 	} else {
-		// Table exists
-		log.Println("Logs table already exists.")
+		logger.LogDebug("Logs table already exists.")
 	}
 }
+
+func indexExists(indexName string) bool {
+    var index string
+    err := DB.QueryRow(`SELECT indexname FROM pg_indexes WHERE indexname = $1`, indexName).Scan(&index)
+    if err == sql.ErrNoRows {
+        // Index does not exist
+        return false
+    } else if err != nil {
+        logger.LogDebug(fmt.Sprintf("Error checking if index exists: %v\n", err))
+    }
+    // Index exists
+    return true
+}
+
+

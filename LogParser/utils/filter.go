@@ -1,13 +1,18 @@
-// Package utils provides helper functions to process and extract filters, pagination, 
-// and date parameters from HTTP requests. These utilities assist in building dynamic queries 
+// Package utils provides helper functions to process and extract filters, pagination,
+// and date parameters from HTTP requests. These utilities assist in building dynamic queries
 // based on user input from URL query parameters.
 package utils
 
 import (
+	"LogParser/logger"
+	"LogParser/models"
+	"fmt"
+	_ "fmt"
+	_ "log"
 	"net/http"
 	"strconv"
+	_ "strings"
 	"time"
-	"LogParser/models"
 )
 
 // GenerateFiltersMap processes query parameters from the HTTP request to generate a map of filters.
@@ -39,14 +44,6 @@ func GenerateFiltersMap(r *http.Request) map[string]interface{} {
 			filters["body_bytes_sent"] = bodyBytesSentInt
 		}
 	}
-	// Check if the query parameter for start time exists and add it to filters.
-	if startTime := r.URL.Query().Get("start_time"); startTime != "" {
-		filters["start_time"] = startTime
-	}
-	// Check if the query parameter for end time exists and add it to filters.
-	if endTime := r.URL.Query().Get("end_time"); endTime != "" {
-		filters["end_time"] = endTime
-	}
 	// Check if the query parameter for HTTP referer exists and add it to filters.
 	if httpReferer := r.URL.Query().Get("http_referer"); httpReferer != "" {
 		filters["http_referer"] = httpReferer
@@ -73,9 +70,11 @@ func GenerateFiltersMap(r *http.Request) map[string]interface{} {
 //   - Pagination model containing the page and limit.
 func GetPaginationParams(r *http.Request) models.Pagination {
 	// Initialize default pagination with page 1 and limit 10.
+	cursorTime := time.Now().Add(-24 * time.Hour) 
 	pagination := models.Pagination{
-		Page: 1,
 		Limit: 10,
+		Cursor: &cursorTime,
+		Page: 1,
 	}
 
 	// Parse the "page" parameter if it exists and is a valid positive integer.
@@ -86,15 +85,27 @@ func GetPaginationParams(r *http.Request) models.Pagination {
 		}
 	}
 
-	// Parse the "limit" parameter if it exists and is a valid positive integer (max limit of 100).
 	if l := r.URL.Query().Get("limit"); l != "" {
 		limitInt, err := strconv.Atoi(l)
 		if err == nil && limitInt > 0 && limitInt <= 100 {
 			pagination.Limit = limitInt
+		} else {
+			logger.LogInfo(fmt.Sprintf("Invalid or out-of-range 'limit' parameter: %v. Defaulting to limit 10.", l))
 		}
 	}
 
-	// Return the pagination model with the parsed values.
+	// Parse "cursor" query parameter if it exists.
+	if cursor := r.URL.Query().Get("cursor"); cursor != "" {
+		cursorTime, err := parseDateOrDateTime(cursor)
+		if err == nil {
+			pagination.Cursor = &cursorTime
+		} else {
+			logger.LogWarn(fmt.Sprintf("Invalid 'cursor' parameter: %v. Defaulting to the last valid cursor time.", cursor))
+		}
+	}
+
+	
+
 	return pagination
 }
 
@@ -114,8 +125,10 @@ func GetDateFilters(r *http.Request) (timeFilter models.TimeFilter, err error) {
 
 	// Parse the "start_time" query parameter if it exists.
 	if start := r.URL.Query().Get("start_time"); start != "" {
-		// Attempt to parse the start time in the format "02/Jan/2006:15:04:05 -0700".
-		parsedStart, err := time.Parse("02/Jan/2006:15:04:05 -0700", start)
+		//fmt.Println("Start", start)
+		//start = strings.ReplaceAll(start, " ", "%20")
+		//start = strings.ReplaceAll(start, ":", "%3A")
+		parsedStart, err := parseDateOrDateTime(start)
 		if err != nil {
 			return timeFilters, err // Return an error if parsing fails.
 		}
@@ -125,15 +138,41 @@ func GetDateFilters(r *http.Request) (timeFilter models.TimeFilter, err error) {
 
 	// Parse the "end_time" query parameter if it exists.
 	if end := r.URL.Query().Get("end_time"); end != "" {
-		// Attempt to parse the end time in the format "02/Jan/2006:15:04:05 -0700".
-		parsedEnd, err := time.Parse("02/Jan/2006:15:04:05 -0700", end)
+		//end = strings.ReplaceAll(end, " ", "%20")
+		//end = strings.ReplaceAll(end, ":", "%3A")
+		parsedEnd, err := parseDateOrDateTime(end)
 		if err != nil {
 			return timeFilters, err // Return an error if parsing fails.
 		}
+
 		// Set the parsed end time in the TimeFilter model.
 		timeFilters.End_time = &parsedEnd
 	}
 
+	if timeFilters.Start_time != nil && timeFilters.End_time != nil {
+        if timeFilters.Start_time.After(*timeFilters.End_time) {
+            timeFilters.Start_time, timeFilters.End_time = timeFilters.End_time, timeFilters.Start_time
+        }
+    }
+
 	// Return the time filters.
 	return timeFilters, nil
+}
+
+func parseDateOrDateTime(input string) (time.Time, error) {
+	// Try to parse as a full timestamp (e.g., "2025-04-08T06:57:05Z")
+	parsedTime, err := time.Parse(time.RFC3339, input)
+	if err == nil {
+		return parsedTime, nil
+	}
+
+	// If parsing as RFC3339 fails, try parsing as just a date (e.g. "2025-04-08")
+	parsedTime, err = time.Parse("2006-01-02", input)
+	if err == nil {
+		// If it's just a date, return the parsed date with midnight time
+		return parsedTime, nil
+	}
+
+	// If both parsing attempts fail, return an error
+	return time.Time{}, fmt.Errorf("invalid date format: '%s'. Expected formats: RFC3339 (e.g., 2025-04-08T06:57:05Z) or date (e.g., 2025-04-08)", input)
 }

@@ -22,7 +22,6 @@ package models
 //   KEY_ALIVE_URL: "/"
 //   KEY_START_URL: "/logs"
 //   KEY_PARSER_API: "http://localhost:8082/logs"
-//
 type GlobalConstantvariables struct {
 	Port        string `yaml:"KEY_PORT"`        // The port on which the application server listens for requests.
 	IsAliveUrl  string `yaml:"KEY_ALIVE_URL"`    // The URL path for checking if the service is alive.

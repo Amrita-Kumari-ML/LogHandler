@@ -6,7 +6,8 @@ package main
 import (
 	"LogParser/connection"
 	"LogParser/helpers"
-	"log"
+	"LogParser/logger"
+	_"log"
 )
 
 // main is the entry point for the application. It performs the following tasks:
@@ -17,6 +18,11 @@ import (
 func main() {
 	// Initialize the database connection by calling the InitDB function.
 	// This will set up the connection to the database for the application.
+	logger.InitializeLogger("debug")
+
+	// Example of using the logger in your code
+	logger.LogInfo("Starting Log Parser service...")
+
 	connection.InitDB()
 
 	// Create a new instance of the Configs struct for handling configuration.
@@ -35,9 +41,9 @@ func main() {
 	// and load any necessary configurations or settings.
 	// If an error occurs during setup, log the error and indicate a failure.
 	if err := app.SetUp(); err != nil {
-		log.Println("Setup Failed! Some internal Issues")
+		logger.LogError("Setup Failed! Some internal Issues")
 	}
 
 	// If the application setup succeeds, log that the service has stopped.
-	log.Println("Service stopped!")
+	logger.LogInfo("Service stopped!")
 }

@@ -1,10 +1,9 @@
-// test/server_test.go
-
-package test
+package server
 
 import (
+	"LogGenerator/loggenerator"
+	"LogGenerator/logger"
 	"LogGenerator/models"
-	"LogGenerator/server"
 	"LogGenerator/utils"
 	"bytes"
 	"encoding/json"
@@ -13,10 +12,25 @@ import (
 	"testing"
 )
 
-//API : isAlive 
+ var yaml = []byte(`
+currentService:
+  KEY_START_URL : "/logs"
+  KEY_ALIVE_URL : "/"
+  KEY_PORT : ":8080"
+
+parserService:
+#ENV PARSER_SERVICE_API="http://logparser:8082/logs"
+  KEY_PARSER_API : "http://localhost:8083/logs"
+
+#Current service configuration
+KEY_RATE : 10
+KEY_UNIT : "s"
+`)
+
 func TestIsAlive(t *testing.T) {
-	utils.LoadConfigFromYaml()
-	handler := &server.ServerHandler{
+	logger.InitializeLogger("info")
+	utils.LoadConfigFromYaml(yaml, nil)
+	handler := &ServerHandler{
 		ResponseW: &utils.ResponseHandler{},
 		LogGen:    nil,
 	}
@@ -34,17 +48,19 @@ func TestIsAlive(t *testing.T) {
 		t.Errorf("IsAlive returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "{\"status\":true,\"message\":\"Server 8081 is live\\n\",\"data\":null}\n"
+	expected := "{\"status\":true,\"message\":\"Server :8080 is live\",\"data\":null}\n"
 	if rr.Body.String() != expected {
 		t.Errorf("IsAlive returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
 
+
 func TestLogTestHandler_ValidRequest(t *testing.T) {
-	utils.LoadConfigFromYaml()
-	handler := &server.ServerHandler{
+	logger.InitializeLogger("debug")
+	utils.LoadConfigFromYaml(yaml, nil)
+	handler := &ServerHandler{
 		ResponseW: &utils.ResponseHandler{},
-		LogGen:    nil,
+		LogGen: &loggenerator.Generator{},
 	}
 	rateModel := models.RequestPayload{
 		NumLogs: 2,
@@ -60,7 +76,6 @@ func TestLogTestHandler_ValidRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating request: %v", err)
 	}
-
 	rr := httptest.NewRecorder()
 	handler.LogHandler(rr, req)
 	if status := rr.Code; status != http.StatusOK {
@@ -73,17 +88,19 @@ func TestLogTestHandler_ValidRequest(t *testing.T) {
 	}
 }
 
+
 func TestLogTestHandler_InvalidMethod(t *testing.T) {
-	utils.LoadConfigFromYaml()
+	logger.InitializeLogger("debug")
+	utils.LoadConfigFromYaml(yaml, nil)
 	req, err := http.NewRequest(http.MethodGet, "/gen", nil)
 	if err != nil {
 		t.Fatalf("Error creating request: %v", err)
 	}
 
 	rr := httptest.NewRecorder()
-	serv := &server.ServerHandler{
+	serv := &ServerHandler{
 		ResponseW: &utils.ResponseHandler{},
-		LogGen:    nil,
+		LogGen: &loggenerator.Generator{},
 	}
 
 	serv.LogHandler(rr, req)
@@ -96,8 +113,10 @@ func TestLogTestHandler_InvalidMethod(t *testing.T) {
 	}
 }
 
+
 func TestLogTestHandler_MissingUnit(t *testing.T) {
-	utils.LoadConfigFromYaml()
+	logger.InitializeLogger("debug")
+	utils.LoadConfigFromYaml(yaml, nil)
 	rateModel := models.RequestPayload{
 		NumLogs: 10,
 	}
@@ -113,9 +132,9 @@ func TestLogTestHandler_MissingUnit(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	serv := &server.ServerHandler{
+	serv := &ServerHandler{
 		ResponseW: &utils.ResponseHandler{},
-		LogGen:    nil,
+		LogGen:    &loggenerator.Generator{},
 	}
 
 	serv.LogHandler(rr, req)
@@ -129,8 +148,10 @@ func TestLogTestHandler_MissingUnit(t *testing.T) {
 	}
 }
 
+
 func TestLogTestHandler_InvalidUnit(t *testing.T) {
-	utils.LoadConfigFromYaml()
+	logger.InitializeLogger("debug")
+	utils.LoadConfigFromYaml(yaml, nil)
 	rateModel := models.RequestPayload{
 		NumLogs: 10,
 		Unit: "xyz",
@@ -147,9 +168,9 @@ func TestLogTestHandler_InvalidUnit(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	serv := &server.ServerHandler{
+	serv := &ServerHandler{
 		ResponseW: &utils.ResponseHandler{},
-		LogGen:    nil,
+		LogGen:    &loggenerator.Generator{},
 	}
 
 	serv.LogHandler(rr, req)

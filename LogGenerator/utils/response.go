@@ -1,9 +1,10 @@
 package utils
 
 import (
+	"LogGenerator/logger"
 	"LogGenerator/models"
 	"encoding/json"
-	"log"
+	_ "log"
 	"net/http"
 )
 
@@ -43,7 +44,7 @@ func (r *ResponseHandler) SendResponse(w http.ResponseWriter, statusCode int, su
 		var err error
 		jsonData, err = json.Marshal(data)
 		if err != nil {
-			log.Println("Internal Server Error")
+			logger.LogError("Internal Server Error")
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -59,7 +60,7 @@ func (r *ResponseHandler) SendResponse(w http.ResponseWriter, statusCode int, su
 	w.WriteHeader(statusCode)
 	err := json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Println("Json decode failed!")
+		logger.LogError("Json decode failed!")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

@@ -3,6 +3,8 @@
 // attributes from a web server log (such as Apache or Nginx).
 package models
 
+import "time"
+
 // Log struct represents a single entry in the web server logs.
 // It contains fields corresponding to common log entry attributes.
 type Log struct {
@@ -18,7 +20,7 @@ type Log struct {
 	// TimeLocal is the timestamp indicating when the request was received.
 	// The format is typically in the form: [dd/Mon/yyyy:hh:mm:ss +timezone].
 	// For example: "[10/Oct/2021:13:55:36 +0000]".
-	TimeLocal string `json:"time_local"`
+	TimeLocal time.Time `json:"time_local"`
 
 	// Request represents the actual HTTP request made by the client.
 	// This field contains the request line, which typically includes the method (GET, POST),

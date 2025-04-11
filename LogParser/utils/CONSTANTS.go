@@ -34,7 +34,7 @@ const PARSER_GET_COUNT_URL string = "/logs/count"   // Default URL for retrievin
 
 // Default values for the database connection configuration.
 const DB_PORT string = "5432"                       // Default port for the PostgreSQL database.
-const DB_HOST string = "postgres"                   // Default host for the PostgreSQL database.
+const DB_HOST string = "postgres"//"localhost"                   // Default host for the PostgreSQL database.
 const DB_USERNAME string = "postgres"               // Default username for the PostgreSQL database.
 const DB_PASSWORD string = "123456"                 // Default password for the PostgreSQL database.
 const DB_NAME string = "logsdb"                     // Default name for the PostgreSQL database.
@@ -42,7 +42,7 @@ const DB_SSLMODE string = "disable"                 // Default SSL mode for the 
 
 // Default values for the database table name and table creation query.
 const DB_TABLE_NAME string = "logs"                 // Default table name for storing logs in the database.
-const DB_CREATE_TABLE_QUERY string = "CREATE TABLE IF NOT EXISTS logs (id SERIAL PRIMARY KEY, remote_addr VARCHAR(255), remote_user VARCHAR(255), time_local TIMESTAMP, request VARCHAR(255), status INT, body_bytes_sent INT, http_referer VARCHAR(255), http_user_agent VARCHAR(255), http_x_forwarded_for VARCHAR(255));"  // SQL query for creating the logs table if it doesn't exist.
+const DB_CREATE_TABLE_QUERY string = "CREATE TABLE IF NOT EXISTS logs (id SERIAL PRIMARY KEY, remote_addr VARCHAR(255), remote_user VARCHAR(255), time_local TIMESTAMPTZ, request VARCHAR(255), status INT, body_bytes_sent INT, http_referer VARCHAR(255), http_user_agent VARCHAR(255), http_x_forwarded_for VARCHAR(255));"  // SQL query for creating the logs table if it doesn't exist.
 
 
 // Constants for the HTTP request methods.
@@ -62,3 +62,6 @@ const API_HANDLER_DELETE_LOGS string = "DeleteLogsHandler" // The handler for de
 // Constants for configuration file names.
 const CONFIG_FILE_NAME string = "config.yaml"        // The name of the main configuration file.
 const CONFIG_DB_FILE_NAME string = "connection/dbConfig.yaml" // The name of the database connection configuration file.
+
+const QUERY_COUNT_ALL string = "SELECT COUNT(*) FROM " + DB_TABLE_NAME
+const CREATE_INDEX_TABLE string = "CREATE INDEX idx_time_local ON logs (time_local);"

@@ -4,11 +4,11 @@
 package utils
 
 import (
+	_"LogGenerator/logger"
+	"LogGenerator/models"
 	"fmt"
 	"os"
-	"log"
 	"strconv"
-	"LogGenerator/models"
 	"github.com/go-yaml/yaml"
 )
 
@@ -43,8 +43,8 @@ func FirstLoad() (error){
 
 	// If any essential environment variable is missing, fall back to loading from config.yaml
 	if port == GENERATOR_PORT {
-		log.Println("Using config.yaml values or default settings.")
-		err := LoadConfigFromYaml()
+		//logger.LogInfo("Using config.yaml values or default settings.")
+		err := LoadConfigFromYaml(ReadConfigFile())
 		if err != nil {
 			return fmt.Errorf("error loading config from YAML: %v", err)
 		}
@@ -52,14 +52,13 @@ func FirstLoad() (error){
 
 	return nil
 }
-
 // GetEnvString this function is reponsible for fetching
 // string type environment variables anf if not present then 
 // sets default value
 func getEnvString(key string, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {
-		log.Println("Environment variable not set, using default value for'", key, "':", defaultValue)
+		//logger.Log.Warnf("Environment variable not set, using default value for '%v': %v", key, defaultValue)
 		return defaultValue
 	}
 	return value
@@ -76,16 +75,20 @@ func getEnvInt(key string, defaultValue int) int {
 
 	parsedValue, err := strconv.Atoi(value)
 	if err != nil {
-		log.Printf("\nError parsing int value for key '%s', defaulting to '%d'", key, defaultValue)
+		//logger.LogError(fmt.Sprintf("\nError parsing int value for key '%s', defaulting to '%d'", key, defaultValue))
 		return defaultValue
 	}
 	return parsedValue
 }
 
+func ReadConfigFile() ([]byte, error){
+	return os.ReadFile(FILE_NAME)
+}
+
 // LoadConfigFromYaml is responsible for setting the data to global
 // variables based on the configuration file
-func LoadConfigFromYaml() error {
-	fileData, err := os.ReadFile("config.yaml")
+func LoadConfigFromYaml(fileData []byte,err error) error {
+	
 	if err != nil {
 		return fmt.Errorf("failed to read config.yaml: %v", err)
 	}

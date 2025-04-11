@@ -1,10 +1,11 @@
-# Loggenerate Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: loggenerate
+  labels:
+    app: loggenerate
 spec:
-  replicas: {{ .Values.loggenerate.replicaCount }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: loggenerate
@@ -15,31 +16,35 @@ spec:
     spec:
       containers:
         - name: loggenerate
-          image: "{{ .Values.loggenerate.image.repository }}:{{ .Values.loggenerate.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
-            - containerPort: {{ .Values.loggenerate.port }}
+            - containerPort: {{ .Values.service.loggeneratePort }}
           env:
-            - name: CURRENT_SERVICE_GENERATE_LOGS
-              value: {{ .Values.loggenerate.env.CURRENT_SERVICE_GENERATE_LOGS }}
-            - name: CURRENT_SERVICE_IS_ALIVE
-              value: {{ .Values.loggenerate.env.CURRENT_SERVICE_IS_ALIVE }}
-            - name: CURRENT_SERVICE_PORT
-              value: {{ .Values.loggenerate.env.CURRENT_SERVICE_PORT }}
-            - name: PARSER_SERVICE_API
-              value: {{ .Values.loggenerate.env.PARSER_SERVICE_API }}
-            - name: RATE
-              value: {{ .Values.loggenerate.env.RATE }}
-            - name: UNIT
-              value: {{ .Values.loggenerate.env.UNIT }}
+            - name: GENERATOR_HOST
+              value: {{ .Values.env.GENERATOR_HOST }}
+            - name: GENERATOR_PORT
+              value: "{{ .Values.env.GENERATOR_PORT }}"
+            - name: GENERATOR_ALIVE_URL
+              value: {{ .Values.env.GENERATOR_ALIVE_URL }}
+            - name: GENERATOR_START_URL
+              value: {{ .Values.env.GENERATOR_START_URL }}
+            - name: PARSER_API
+              value: {{ .Values.env.PARSER_API }}
+            - name: GENERATOR_RATE
+              value: "{{ .Values.env.GENERATOR_RATE }}"
+            - name: GENERATOR_UNIT
+              value: "{{ .Values.env.GENERATOR_UNIT }}"
 
-# Logparser Deployment
----
+
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: logparser
+  labels:
+    app: logparser
 spec:
-  replicas: {{ .Values.logparser.replicaCount }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: logparser
@@ -50,41 +55,47 @@ spec:
     spec:
       containers:
         - name: logparser
-          image: "{{ .Values.logparser.image.repository }}:{{ .Values.logparser.image.tag }}"
+          image: "{{ .Values.logparserImage.repository }}:{{ .Values.logparserImage.tag }}"
           ports:
-            - containerPort: {{ .Values.logparser.port }}
+            - containerPort: {{ .Values.service.logparserPort }}
           env:
-            - name: SERVER_PORT
-              value: {{ .Values.logparser.env.SERVER_PORT }}
+            - name: PARSER_HOST
+              value: {{ .Values.env.PARSER_HOST }}
+            - name: PARSER_PORT
+              value: "{{ .Values.env.PARSER_PORT }}"
+            - name: PARSER_ALIVE_URL
+              value: {{ .Values.env.PARSER_ALIVE_URL }}
+            - name: PARSER_ADD_URL
+              value: {{ .Values.env.PARSER_ADD_URL }}
+            - name: PARSER_GET_URL
+              value: {{ .Values.env.PARSER_GET_URL }}
+            - name: PARSER_GET_COUNT_URL
+              value: {{ .Values.env.PARSER_GET_COUNT_URL }}
+            - name: PARSER_DELETE_URL
+              value: {{ .Values.env.PARSER_DELETE_URL }}
             - name: DB_HOST
-              value: {{ .Values.logparser.env.DB_HOST }}
+              value: {{ .Values.env.DB_HOST }}
             - name: DB_PORT
-              value: {{ .Values.logparser.env.DB_PORT }}
-            - name: DB_USER
-              value: {{ .Values.logparser.env.DB_USER }}
+              value: "{{ .Values.env.DB_PORT }}"
+            - name: DB_USERNAME
+              value: {{ .Values.env.DB_USERNAME }}
             - name: DB_PASSWORD
-              value: {{ .Values.logparser.env.DB_PASSWORD }}
+              value: {{ .Values.env.DB_PASSWORD }}
             - name: DB_NAME
-              value: {{ .Values.logparser.env.DB_NAME }}
-            - name: LOGGING_LEVEL
-              value: {{ .Values.logparser.env.LOGGING_LEVEL }}
-            - name: LOGGING_FORMAT
-              value: {{ .Values.logparser.env.LOGGING_FORMAT }}
-            - name: LOG_FILE
-              value: {{ .Values.logparser.env.LOG_FILE }}
-            - name: API_PATH
-              value: {{ .Values.logparser.env.API_PATH }}
-            - name: API_METHOD
-              value: {{ .Values.logparser.env.API_METHOD }}
+              value: {{ .Values.env.DB_NAME }}
+            - name: DB_SSLMODE
+              value: {{ .Values.env.DB_SSLMODE }}
 
-# Postgres Deployment
----
+
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
+  labels:
+    app: postgres
 spec:
-  replicas: {{ .Values.postgres.replicaCount }}
+  replicas: 1
   selector:
     matchLabels:
       app: postgres
@@ -95,13 +106,11 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
-          ports:
-            - containerPort: {{ .Values.postgres.port }}
+          image: "{{ .Values.postgres.image }}"
           env:
             - name: POSTGRES_USER
-              value: {{ .Values.postgres.env.POSTGRES_USER }}
+              value: "{{ .Values.postgres.username }}"
             - name: POSTGRES_PASSWORD
-              value: {{ .Values.postgres.env.POSTGRES_PASSWORD }}
+              value: "{{ .Values.postgres.password }}"
             - name: POSTGRES_DB
-              value: {{ .Values.postgres.env.POSTGRES_DB }}
+              value: "{{ .Values.postgres.db }}"

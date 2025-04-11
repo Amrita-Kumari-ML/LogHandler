@@ -1,16 +1,16 @@
 package loggenerator
 
 import (
+	"LogGenerator/logger"
 	_ "LogGenerator/models"
 	"LogGenerator/utils"
 	"context"
 	"fmt"
+	_ "log"
 	"math/rand"
 	"runtime"
 	"sync"
 	"time"
-	"log"
-
 )
 type Generator struct{}
 
@@ -38,8 +38,8 @@ func GenerateLog() string {
 	xForwardedFor := fmt.Sprintf("%d.%d.%d.%d", rnd.Intn(256), rnd.Intn(256), rnd.Intn(256), rnd.Intn(256))
 
 	request := fmt.Sprintf("%s %s HTTP/1.1", method, url)
-	timeLocal := time.Now().Format("02/Jan/2006:15:04:05 -0700")
-
+	//timeLocal := time.Now()//.Format("02/Jan/2006:15:04:05 -0700")
+	timeLocal := time.Now().UTC().Format(time.RFC3339)
 	return fmt.Sprintf("%s - - [%s] \"%s\" %d %d \"%s\" \"%s\" \"%s\"",
 	ip, timeLocal, request, status, bodyBytesSent, referrer, userAgent, xForwardedFor)
 
@@ -112,7 +112,7 @@ func (l *Generator) GenerateLogsConcurrently(ctx context.Context, numLogs int, d
 				case <-logTicker.C:
 						mu.Lock()
 						if generatedLogs >= numLogs {
-							log.Printf("\n\n\n Given is size for the given time %v: size", generatedLogs)
+							logger.LogDebug(fmt.Sprintf("\n\n\n Given is size for the given time %v: size", generatedLogs))
 							mu.Unlock()
 							return
 						}
@@ -120,12 +120,12 @@ func (l *Generator) GenerateLogsConcurrently(ctx context.Context, numLogs int, d
 						mu.Unlock()
 
 						logs[logIndex] = GenerateLog()
-						log.Printf("Generated Log: %s\n", logs[logIndex])
+						logger.LogDebug(fmt.Sprintf("Generated Log: %s\n", logs[logIndex]))
 
 						logSize := len(logs[logIndex])
 
 					if totalBatchSize+logSize > maxBatchSizeBytes {
-						log.Println("Batch byte size is more:", totalBatchSize+logSize)
+						logger.LogDebug(fmt.Sprintf("Batch byte size is more:%v", totalBatchSize+logSize))
 						go SendLogToProcessor(batch)
 
 						batch = []string{}
@@ -136,7 +136,7 @@ func (l *Generator) GenerateLogsConcurrently(ctx context.Context, numLogs int, d
 					totalBatchSize += logSize
 
 					if len(batch) >= 100 {
-						log.Println("Batch size is more:", len(batch))
+						logger.LogDebug(fmt.Sprintf("Batch size is more:%v", len(batch)))
 						go SendLogToProcessor(batch)
 						batch = []string{}
 						totalBatchSize = 0

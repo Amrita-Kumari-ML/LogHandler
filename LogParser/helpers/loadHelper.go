@@ -1,17 +1,18 @@
-// Package helpers manages server lifecycle, configuration loading, and request handling. 
-// It defines the core components for starting and stopping the server, refreshing configurations, 
-// and mapping handler functions to the appropriate URLs. The application also handles graceful 
+// Package helpers manages server lifecycle, configuration loading, and request handling.
+// It defines the core components for starting and stopping the server, refreshing configurations,
+// and mapping handler functions to the appropriate URLs. The application also handles graceful
 // shutdowns upon receiving termination signals.
 package helpers
 
 import (
 	"LogParser/connection"
 	"LogParser/handlers"
-	"LogParser/interfaces"
-	_"LogParser/server"
+	_"LogParser/interfaces"
+	"LogParser/logger"
+	_ "LogParser/server"
 	"LogParser/utils"
 	"fmt"
-	"log"
+	_ "log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -53,7 +54,6 @@ func (s *Servers) startServer() error{
 	http.HandleFunc(utils.PARSER_ALIVE_URL, handlers.IsAlive)            // Handler for /alive
 	http.HandleFunc(utils.PARSER_MAIN_URL, handlers.HandleType)          // Handler for /parse
 	http.HandleFunc(utils.PARSER_GET_COUNT_URL, handlers.GetLogsCountHandler) // Handler for /logs/count
-	http.HandleFunc("/metrics", handlers.MetricsHandler) 
 	
 	// Log the current configuration data (for debugging and verification).
 	fmt.Println("Current Configuration Data:", utils.ConfigData)
@@ -61,13 +61,13 @@ func (s *Servers) startServer() error{
 	// Start the HTTP server and listen on the configured port.
 	serverPort := utils.ConfigData.PORT
 	if err := http.ListenAndServe(fmt.Sprintf("%s", serverPort), nil); err != nil {
-		log.Println("Error starting server:", err)
+		logger.LogError(fmt.Sprintf("Error starting server: %v", err))
 		os.Exit(1)
 	}
 
 	return nil
 }
-
+/*
 // MapHandlerToFunc maps a handler name to a corresponding HTTP handler function.
 // This function is used to dynamically assign the correct handler based on configuration.
 func MapHandlerToFunc(handlerName string, handler interfaces.Handler) http.HandlerFunc {
@@ -90,11 +90,11 @@ func (url *EndPointHandler) MapHandler(handlerName string) http.HandlerFunc{
 		return handlers.DeleteLogsHandler
 	default:
 		// If the handler is not recognized, return a 404 (Not Found).
-		log.Printf("No handler found for %s, returning a 404", handlerName)
+		logger.LogWarn(fmt.Sprintf("No handler found for %s, returning a 404", handlerName))
 		return http.NotFound
 	}
 }
-
+*/
 // stopServer gracefully shuts down the server when a termination signal is received.
 func (s *Servers) stopServer() error{
 	// Wait for a signal (e.g., SIGINT or SIGTERM) to stop the server.
@@ -123,7 +123,7 @@ func (c *Configs) refreshServer() error {
 
 	// Log the updated configuration data (for debugging and verification).
 	fmt.Println(utils.ConfigData)
-	log.Println("Configuration Updated!")
+	logger.LogDebug("Configuration Updated!")
 	return nil
 }
 
@@ -136,10 +136,10 @@ func RefreshConfigura(configs ConfigurationLoader, t time.Duration){
 
 	// Continuously refresh the configuration as long as the ticker is active.
 	for range ticker.C {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
+		//log.SetFlags(log.LstdFlags | log.Lshortfile)
 		if err := configs.refreshServer(); err != nil{
 			// Log any errors encountered while refreshing the configuration.
-			log.Println(err)
+			logger.LogError(err)
 		}
 	}
 }
@@ -183,8 +183,8 @@ func (app *Application) SetUp() error{
 
 	// Refresh the server configuration at startup.
 	if err := app.configuration.refreshServer(); err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-    	log.Println(err)
+		//log.SetFlags(log.LstdFlags | log.Lshortfile)
+    	logger.LogError(err)
 		return nil
 	}
 

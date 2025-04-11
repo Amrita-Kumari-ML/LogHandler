@@ -1,14 +1,15 @@
 package loggenerator
 
 import (
+	"LogGenerator/logger"
 	"LogGenerator/utils"
 	"bytes"
 	"encoding/json"
-	"log"
+	"fmt"
+	_ "log"
 	"net/http"
 	"time"
 )
-
 
 // SendLogToProcessor sends a batch of logs to an external log processor via an HTTP POST request.
 // The logs are sent in JSON format to the log processor API endpoint specified in the configuration.
@@ -30,10 +31,10 @@ import (
 //   logs := []string{"log1", "log2", "log3"}
 //   SendLogToProcessor(logs)
 func SendLogToProcessor(logs []string) {
-	log.Println("Send log is called!")
+	logger.LogDebug("Send log is called!")
 	logJson, err := json.Marshal(logs)
 	if err != nil {
-		log.Printf("Error marshalling log data: %v", err)
+		logger.LogError(fmt.Sprintf("Error marshalling log data: %v", err))
 		return
 	}
 
@@ -49,8 +50,8 @@ func SendLogToProcessor(logs []string) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		log.Println("Logs successfully sent to LogParser")
+		logger.LogInfo("Logs successfully sent to LogParser")
 	} else {
-		log.Printf("Failed to send logs to LogParser. Status Code: %d", resp.StatusCode)
+		logger.LogWarn(fmt.Sprintf("Failed to send logs to LogParser. Status Code: %d", resp.StatusCode))
 	}
 }

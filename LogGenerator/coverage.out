@@ -1,0 +1,4 @@
+mode: set
+LogGenerator/main.go:20.13,40.35 6 0
+LogGenerator/main.go:40.35,44.3 1 0
+LogGenerator/main.go:48.2,48.49 1 0

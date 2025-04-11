@@ -3,12 +3,7 @@ package server
 
 import (
 	"LogParser/interfaces"
-	"LogParser/models"
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
+	_ "log"
 )
 
 // count is a global variable to track the number of logs processed.
@@ -30,29 +25,30 @@ func NewHandlerMapper(serverHandler *ServerHandler) *HandlerMapper {
 	return &HandlerMapper{ServerHandler: serverHandler}
 }
 
+/*
 // sendLogToProcessor sends logs to a log processor service using an HTTP POST request.
 func sendLogToProcessor(logs []models.Log) {
 	// Marshal logs into JSON format
 	logJson, err := json.Marshal(logs)
 	if err != nil {
-		log.Printf("Error marshalling log data: %v", err) // Log an error if marshalling fails
+		logger.LogError(fmt.Sprintf("Error marshalling log data: %v", err)) // Log an error if marshalling fails
 		return
 	}
 	
 	fmt.Println("---------------------------------") // Placeholder for logic to store data to PostgreSQL
 	// Send the logs to a log processing service
-	resp, err := http.Post("http://localhost:8083/addlogs", "application/json", bytes.NewBuffer(logJson))
+	resp, err := http.Post("http://localhost:8083/logs", "application/json", bytes.NewBuffer(logJson))
 	if err != nil {
-		log.Printf("Error sending log to LogProcessor: %v", err) // Log an error if sending fails
+		logger.LogError(fmt.Sprintf("Error sending log to LogProcessor: %v", err)) // Log an error if sending fails
 		return
 	}
 	defer resp.Body.Close()
 
 	// Check the response status code and log success or failure
 	if resp.StatusCode == http.StatusOK {
-		log.Println("Log successfully sent to LogProcessor")
+		logger.LogInfo("Log successfully sent to LogProcessor")
 	} else {
-		log.Printf("Failed to send log to LogProcessor, Status Code: %d", resp.StatusCode)
+		logger.LogError(fmt.Sprintf("Failed to send log to LogProcessor, Status Code: %d", resp.StatusCode))
 	}
 }
 
@@ -61,11 +57,11 @@ func printToConsole(logs []models.Log) {
 	// Marshal logs into a pretty-printed JSON format
 	logJson, err := json.MarshalIndent(logs, "", "  ")
 	if err != nil {
-		log.Printf("Error marshalling logs to JSON: %v", err) // Log an error if marshalling fails
+		logger.LogWarn(fmt.Sprintf("Error marshalling logs to JSON: %v", err)) // Log an error if marshalling fails
 		return
 	}
 	
 	// Print the formatted JSON logs to the console
 	fmt.Println(string(logJson))
 }
-
+*/

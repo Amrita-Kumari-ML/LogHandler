@@ -66,30 +66,6 @@ services:
     networks:
       - lognetwork
 
- # Prometheus Service - for monitoring
-  prometheus:
-    image: prom/prometheus:v2.25.0
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Prometheus config file
-    networks:
-      - lognetwork
-
-  # Grafana Service - for visualizing metrics
-  grafana:
-    image: grafana/grafana:7.3.1
-    container_name: grafana
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin  # Set Grafana admin password
-    ports:
-      - "3000:3000"  # Grafana UI port
-    networks:
-      - lognetwork
-    depends_on:
-      - prometheus
-      
 networks:
   lognetwork:
     driver: bridge

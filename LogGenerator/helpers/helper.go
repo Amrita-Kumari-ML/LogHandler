@@ -1,35 +1,19 @@
 package helpers
 
 import (
+	"LogGenerator/interfaces"
 	"LogGenerator/loggenerator"
+	"LogGenerator/logger"
 	"LogGenerator/server"
 	"LogGenerator/utils"
 	"fmt"
-	"log"
+	_"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
 )
-
-
-// ServerLoader defines the interface for starting and stopping the server.
-type ServerLoader interface{
-
-	// startServer starts the HTTP server to handle incoming requests.
-	startServer() error
-
-	// stopServer stops the running HTTP server gracefully.
-	stopServer() error
-}
-
-// ConfigurationLoader defines the interface for refreshing and updating the server configuration.
-type ConfigurationLoader interface {
-	// refreshServer refreshes the server's configuration by reloading the settings.
-	refreshServer() error
-}
 
 // Servers struct handles server-related operations like starting and stopping the server.
 type Servers struct{}
@@ -45,7 +29,7 @@ type Servers struct{}
 //   // Initialize and start the server
 //   server := &Servers{}
 //   server.startServer()
-func (s *Servers) startServer() error{
+func (s *Servers) StartServer() error{
 	// Initialize the ServerHandler, which handles the server responses and log generation.
 	serv := &server.ServerHandler{
 		ResponseW: &utils.ResponseHandler{},
@@ -54,13 +38,12 @@ func (s *Servers) startServer() error{
 	//server start logic
 	http.HandleFunc(utils.GloablMetaData.IsAliveUrl, serv.IsAlive)
 	http.HandleFunc(utils.GloablMetaData.GenerateUrl, serv.LogHandler)
-	http.HandleFunc("/metrics", serv.MetricsHandler)
 	//http.HandleFunc("/gen", serv.LogTestHandler)
 
-	log.Println("Starting log generator server on port ",utils.GloablMetaData.Port,"...")
-	log.Println(utils.ConfigData)
+	logger.LogInfo("Starting log generator server on port "+utils.GloablMetaData.Port+"...")
+	logger.LogDebug(utils.ConfigData)
 	if err := http.ListenAndServe(utils.GloablMetaData.Port, nil); err != nil {
-		log.Println("Error starting server:", err)
+		logger.LogError(fmt.Sprintf("Error starting server: %v", err))
 		os.Exit(1)
 	}
 	return nil
@@ -74,10 +57,10 @@ func (s *Servers) startServer() error{
 //   // Initialize and stop the server
 //   server := &Servers{}
 //   server.stopServer()
-func (s *Servers) stopServer() error{
+func (s *Servers) StopServer() error{
 	//server stop logic
 	<-done
-	log.Println("Server Stopped......")
+	logger.LogInfo("Server Stopped......")
 	os.Exit(1)
 	return nil
 }
@@ -93,12 +76,11 @@ type Configs struct{}
 //   // Initialize and refresh the server configuration
 //   configs := &Configs{}
 //   configs.refreshServer()
-func (c *Configs) refreshServer() error{
+func (c *Configs) RefreshServer() error{
 	if err := utils.FirstLoad(); err != nil {
 		return fmt.Errorf("error loading configuration: %v", err)
 	}
-	log.Println(utils.ConfigData)
-	log.Println("Configuration Updated")
+	logger.LogDebug(fmt.Sprintf("Updated Data : %v",utils.ConfigData))
 	return nil
 }
 
@@ -111,22 +93,22 @@ func (c *Configs) refreshServer() error{
 //   // Initialize configuration and refresh it every 1 minute.
 //   configs := &Configs{}
 //   RefreshConfigura(configs, time.Minute)
-func RefreshConfigura(configs ConfigurationLoader, t time.Duration){
+func RefreshConfigura(configs interfaces.ConfigurationLoader, t time.Duration){
 	ticker := time.NewTicker(1 * t)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		if err := configs.refreshServer(); err != nil{
-			log.Println(err)
+		//log.SetFlags(log.LstdFlags | log.Lshortfile)
+		if err := configs.RefreshServer(); err != nil{
+			logger.LogError(err)
 		}
 	}
 }
 
 // Application struct combines server and configuration functionalities to initialize and run the application.
 type Application struct{
-	server ServerLoader
-	configuration ConfigurationLoader
+	Server interfaces.ServerLoader
+	Configuration interfaces.ConfigurationLoader
 }
 
 // NewApplication creates a new Application instance with the given server and configuration loaders.
@@ -137,10 +119,10 @@ type Application struct{
 //   // Create a new application with server and configuration loaders
 //   app := NewApplication(&Servers{}, &Configs{})
 //   app.SetUp() // Set up the application
-func NewApplication(servers ServerLoader, configs ConfigurationLoader) *Application{
+func NewApplication(servers interfaces.ServerLoader, configs interfaces.ConfigurationLoader) *Application{
 	return &Application{
-		server: servers,
-		configuration: configs,
+		Server: servers,
+		Configuration: configs,
 	}
 }
 var done chan bool
@@ -165,20 +147,19 @@ func (app *Application) SetUp() error{
 
 	go func() {
 		sig := <-sigs
-		log.Println()
-		log.Println(sig)
+		logger.LogWarn(sig)
 		done <- true
 	}()
 	
-	if err := app.configuration.refreshServer(); err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-    	log.Println(err)
-		return nil
+	if err := app.Configuration.RefreshServer(); err != nil {
+		//log.SetFlags(log.LstdFlags | log.Lshortfile)
+    	logger.LogError(err)
+		return err
 	}
 
-	go RefreshConfigura(app.configuration,time.Minute)
-	go app.server.stopServer()
-	app.server.startServer()
+	go RefreshConfigura(app.Configuration,time.Minute)
+	go app.Server.StopServer()
+	app.Server.StartServer()
 
 	return nil
 }

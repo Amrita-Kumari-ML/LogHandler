@@ -1,11 +1,14 @@
-// Package utils provides functions to generate SQL queries for different operations such as 
-// retrieving, counting, deleting, and adding logs in a database. These functions dynamically 
-// build SQL queries based on the given filters, pagination, and date parameters, and return the 
+// Package utils provides functions to generate SQL queries for different operations such as
+// retrieving, counting, deleting, and adding logs in a database. These functions dynamically
+// build SQL queries based on the given filters, pagination, and date parameters, and return the
 // final query string along with the parameters to be used in a prepared statement.
 package utils
 
-import "fmt"
-import "LogParser/models"
+import (
+	"LogParser/models"
+	"fmt"
+	"time"
+)
 
 // GenerateFilteredGetQuery generates a SQL query to fetch filtered logs from the database
 // based on provided filters, pagination, and date range.
@@ -31,19 +34,34 @@ func GenerateFilteredGetQuery(filters map[string]interface{}, paginationFilter m
 
 	// Add date range filters to the query
 	if dateFilter.Start_time != nil {
-		baseQuery += fmt.Sprintf(" AND %s >= $%d", "TimeLocal", argIndex)
-		args = append(args, dateFilter.Start_time)
+		startTime := dateFilter.Start_time.UTC().Format(time.RFC3339)
+		fmt.Println("Start:",startTime)
+		baseQuery += fmt.Sprintf(" AND time_local >= $%d", argIndex)
+		args = append(args, startTime)
 		argIndex++
 	}
 	if dateFilter.End_time != nil {
-		baseQuery += fmt.Sprintf(" AND %s <= $%d", "TimeLocal", argIndex)
-		args = append(args, dateFilter.End_time)
+		endTime := dateFilter.End_time.UTC().Format(time.RFC3339)
+		fmt.Println("End:",endTime)
+		baseQuery += fmt.Sprintf(" AND time_local <= $%d", argIndex)
+		args = append(args, endTime)
 		argIndex++
 	}
 
+	if paginationFilter.Cursor != nil {
+		baseQuery += fmt.Sprintf(" AND time_local > $%d", argIndex)
+		fmt.Println("Cursor:",paginationFilter.Cursor.UTC().Format(time.RFC3339))
+		args = append(args, paginationFilter.Cursor.UTC().Format(time.RFC3339))
+		argIndex++
+	}
+
+	baseQuery += fmt.Sprintf(" LIMIT $%d", argIndex)
+	args = append(args, paginationFilter.Limit)
+	argIndex++
+
 	// Add pagination with LIMIT and OFFSET
-	offset := (paginationFilter.Page - 1) * paginationFilter.Limit
-	baseQuery += fmt.Sprintf(" LIMIT %d OFFSET %d", paginationFilter.Limit, offset)
+	//offset := (paginationFilter.Page - 1) * paginationFilter.Limit
+	//baseQuery += fmt.Sprintf(" LIMIT %d OFFSET %d", paginationFilter.Limit, offset)
 
 	// Return the query and the parameters
 	return baseQuery, args
@@ -58,7 +76,7 @@ func GenerateFilteredGetQuery(filters map[string]interface{}, paginationFilter m
 // Returns:
 //   - A string representing the final SQL query to count the logs with filters applied.
 //   - A slice of interface{} containing the values to be bound to the prepared statement.
-func GenerateFilteredCountQuery(filters map[string]interface{}, paginationFilter models.Pagination, dateFilter models.TimeFilter) (string, []interface{}) {
+func GenerateFilteredCountQuery(filters map[string]interface{}) (string, []interface{}) {//, paginationFilter models.Pagination, dateFilter models.TimeFilter
 	// Base query string to count logs
 	baseQuery := "SELECT COUNT(*) FROM logs WHERE 1=1"
 	var args []interface{}
@@ -71,24 +89,14 @@ func GenerateFilteredCountQuery(filters map[string]interface{}, paginationFilter
 		argIndex++
 	}
 
-	// Add date range filters to the query
-	if dateFilter.Start_time != nil {
-		baseQuery += fmt.Sprintf(" AND %s >= $%d", "TimeLocal", argIndex)
-		args = append(args, dateFilter.Start_time)
-		argIndex++
-	}
-	if dateFilter.End_time != nil {
-		baseQuery += fmt.Sprintf(" AND %s <= $%d", "TimeLocal", argIndex)
-		args = append(args, dateFilter.End_time)
-		argIndex++
-	}
-
-	// Add pagination with LIMIT and OFFSET
-	offset := (paginationFilter.Page - 1) * paginationFilter.Limit
-	baseQuery += fmt.Sprintf(" LIMIT %d OFFSET %d", paginationFilter.Limit, offset)
-
-	// Return the query and the parameters
 	return baseQuery, args
+}
+
+func GetCount() (string) {//, paginationFilter models.Pagination, dateFilter models.TimeFilter
+	// Base query string to count logs
+	baseQuery := "SELECT COUNT(*) FROM logs;"
+
+	return baseQuery
 }
 
 // GenerateDeleteQuery generates a SQL query to delete logs from the database based on the provided filters.

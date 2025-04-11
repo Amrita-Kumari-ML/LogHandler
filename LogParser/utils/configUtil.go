@@ -1,15 +1,17 @@
-// Package utils provides utility functions for managing configuration settings 
+// Package utils provides utility functions for managing configuration settings
 // by loading them either from environment variables or from a YAML configuration file.
 // It ensures that global configuration settings are loaded and provides functions
 // for retrieving configuration values with fallback options.
 package utils
 
 import (
+	"LogParser/logger"
+	"LogParser/models"
 	"fmt"
-	"log"
+	_ "log"
 	"os"
 	"strconv"
-	"LogParser/models"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -30,7 +32,7 @@ func FirstLoad() (error) {
 	// If the port is still set to the default value (meaning the environment variable was not set),
 	// fall back to loading the configuration from the YAML file
 	if port == PARSER_PORT {
-		log.Println("Using config.yaml values or default settings.")
+		logger.LogDebug("Using config.yaml values or default settings.")
 
 		// Attempt to load the YAML file
 		if err := LoadConfigFromYaml(); err != nil {
@@ -48,14 +50,14 @@ func LoadConfigFromYaml() error {
 	// Read the YAML file
 	yamlFile, err := os.ReadFile(CONFIG_FILE_NAME)
 	if err != nil {
-		log.Printf("error reading YAML file: %v\n", err)
+		//logger.LogError(fmt.Sprintf("error reading YAML file: %v\n", err))
 		return fmt.Errorf("error reading YAML file: %v\n", err)
 	}
 
 	// Unmarshal the YAML content into ConfigData
 	err = yaml.Unmarshal(yamlFile, &ConfigData)
 	if err != nil {
-		log.Printf("error unmarshalling YAML file: %v\n", err)
+		//logger.Printf("error unmarshalling YAML file: %v\n", err)
 		return fmt.Errorf("error unmarshalling YAML file: %v", err)
 	}
 
@@ -144,7 +146,7 @@ func getEnvInt(key string, defaultValue int) int {
 	parsedValue, err := strconv.Atoi(value)
 	if err != nil {
 		// Log an error if the value cannot be converted to an integer
-		log.Printf("Error parsing int value for key %s, defaulting to %d", key, defaultValue)
+		logger.LogInfo(fmt.Sprintf("Error parsing int value for key %s, defaulting to %d", key, defaultValue))
 		return defaultValue
 	}
 	// Return the parsed integer value

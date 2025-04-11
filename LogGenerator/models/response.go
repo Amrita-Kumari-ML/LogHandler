@@ -36,7 +36,6 @@ import (
 //       Message: "Failed to generate logs",
 //       Data:    nil,
 //   }
-
 type Response struct {
 	// Status indicates whether the operation was successful or not.
 	// - `true` means success

@@ -4,12 +4,14 @@
 package connection
 
 import (
-	"fmt"
-	"log"
-	"os"
-	"strconv"
+	"LogParser/logger"
 	"LogParser/models"
 	"LogParser/utils"
+	"fmt"
+	_ "log"
+	"os"
+	"strconv"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -55,7 +57,7 @@ func FirstLoad() error {
 
 	// If essential environment variables are missing, fall back to loading from the YAML file
 	if dbHost == utils.DB_HOST {
-		log.Println("Using config.yaml values or default settings.")
+		logger.LogWarn("Using config.yaml values or default settings.")
 		err := LoadConfigFromYaml(utils.CONFIG_DB_FILE_NAME)
 		if err != nil {
 			return fmt.Errorf("error loading config from YAML: %v", err)
@@ -107,7 +109,7 @@ func getEnvInt(key string, defaultValue int) int {
 
 	parsedValue, err := strconv.Atoi(value)
 	if err != nil {
-		log.Printf("Error parsing environment variable %s, using default value %d\n", key, defaultValue)
+		logger.LogWarn(fmt.Sprintf("Error parsing environment variable %s, using default value %d\n", key, defaultValue))
 		return defaultValue
 	}
 	return parsedValue

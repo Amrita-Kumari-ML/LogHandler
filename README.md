@@ -183,6 +183,17 @@ CREATE TABLE IF NOT EXISTS logs (
 ```
 
 
+# LogHandler Helm Chart
+
+This Helm chart deploys log generation and parsing services along with monitoring using Prometheus and Grafana.
+
+## Install the chart
+
+```bash
+helm install loghandler ./loghandler-helm-chart
+
+```
+
 ## License
 
 ### Expanded Sections in the `README.md`:

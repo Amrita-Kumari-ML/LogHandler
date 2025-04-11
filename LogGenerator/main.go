@@ -2,7 +2,7 @@ package main
 
 import (
 	"LogGenerator/helpers"
-	"log"
+	"LogGenerator/logger"
 )
 
 // main is the entry point of the application, where the server and application setup is initialized and started.
@@ -18,6 +18,9 @@ import (
 //   // Initialize the main entry point
 //   main()
 func main() {
+	logger.InitializeLogger("debug")
+
+	logger.LogInfo("Starting Log Generator service...")
 	
 	// Initialize a configuration object to handle application settings.
 	// This will load configuration data for the application.
@@ -37,11 +40,11 @@ func main() {
 	if err := app.SetUp(); err != nil{ 
 		// If there is a failure in setting up the application, log the error message.
 		// This will help in debugging any issues during initialization.
-		log.Println("Setup Failed! Some internal Issues")
+		logger.LogError("Setup Failed! Some internal Issues")
 	}
 
 	// Log a message indicating that the service has been stopped.
 	// This indicates that the server has either been shut down or encountered an issue.
-	log.Println("Service stopped!")
+	logger.LogInfo("Log Generator Service stoped.")
 }
 

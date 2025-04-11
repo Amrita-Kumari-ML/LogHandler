@@ -2,55 +2,17 @@ package server
 
 import (
 	"LogGenerator/interfaces"
+	"LogGenerator/logger"
 	"LogGenerator/models"
 	"LogGenerator/utils"
 	"context"
 	"encoding/json"
 	"fmt"
+	_ "log"
 	"net/http"
 	"sync"
 	"time"
-	"log"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/client_golang/prometheus"
 )
-
-
-var (
-	httpRequests = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Total number of HTTP requests",
-		},
-		[]string{"method", "status"},
-	)
-
-	httpDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "http_duration_seconds",
-			Help:    "Histogram of HTTP request durations",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"method"},
-	)
-
-	logGenerationCount = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "log_generation_total",
-			Help: "Total number of log generation tasks",
-		},
-		[]string{"status"},
-	)
-)
-
-func init() {
-	// Register Prometheus metrics
-	prometheus.MustRegister(httpRequests)
-	prometheus.MustRegister(httpDuration)
-	prometheus.MustRegister(logGenerationCount)
-}
-
-
 
 // ServerHandler is responsible for handling HTTP requests related to log generation and server health checks.
 // It manages incoming requests, including checking the server's health (IsAlive) and initiating log generation tasks (LogHandler).
@@ -58,7 +20,7 @@ func init() {
 // Fields:
 //   - ResponseW: An interface that defines the method for sending HTTP responses.
 //     - It is used to send back structured responses to the client.
-//   
+//
 //   - LogGen: An interface that defines the method for generating logs.
 //     - It is used to start log generation tasks and manage concurrent log generation operations.
 type ServerHandler struct {
@@ -80,14 +42,8 @@ var mu sync.Mutex // To safely access the cancelFunc in a concurrent environment
 //     "data": null
 //   }
 func (s *ServerHandler) IsAlive(w http.ResponseWriter, r *http.Request) {
-
-	timer := prometheus.NewTimer(httpDuration.WithLabelValues(r.Method))
-	defer timer.ObserveDuration()
-
-	httpRequests.WithLabelValues(r.Method, "200").Inc()
-
 	s.ResponseW.SendResponse(w, http.StatusOK, true, fmt.Sprintf("Server %v is live", utils.GloablMetaData.Port), nil)
-	log.Println("Checking Log Generator Server Call!")
+	logger.LogDebug("Checking Log Generator Server Call!")
 }
 
 // LogHandler handles the "POST /generate" endpoint to initiate log generation.
@@ -109,14 +65,7 @@ func (s *ServerHandler) IsAlive(w http.ResponseWriter, r *http.Request) {
 //   }
 func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 	response := s.ResponseW
-	log.Println("\n Log generation is called!")
-
-	// Start measuring the request duration for Prometheus
-	timer := prometheus.NewTimer(httpDuration.WithLabelValues(r.Method))
-	defer timer.ObserveDuration()
-	
-	// Increment the HTTP request counter for this specific method and status code (e.g., 200)
-	httpRequests.WithLabelValues(r.Method, "200").Inc()
+	logger.LogDebug("\n Log generation is called!")
 
 	// Default values for rate and unit
 	var rate int
@@ -163,16 +112,13 @@ func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Respond immediately with "Task is in progress"
 	response.SendResponse(w, http.StatusOK, true, "Task is in progress...", nil)
-	log.Println("Response generated to indicate task is in progress")
-
-	// Increment log generation count for this task (started)
-	logGenerationCount.WithLabelValues("started").Inc()
+	logger.LogInfo("Response generated to indicate task is in progress")
 
 	// Cancel the previous task if it exists
 	mu.Lock()
 	if cancelFunc != nil {
 		cancelFunc() // Cancel the previous task
-		log.Println("Previous task canceled.")
+		logger.LogWarn("Previous task canceled.")
 	}
 	mu.Unlock()
 
@@ -215,22 +161,15 @@ func (s *ServerHandler) startLogGenerationTask(rate int, unitStr string, duratio
 			mu.Unlock()
 
 			wg.Add(1)
-			log.Println("-------------------------------------------------------")
 			go s.LogGen.GenerateLogsConcurrently(cntx, rate, duration, &wg)
 
 		case <-cntx.Done():
 			// Task was externally stopped (e.g., by cancelFunc)
-			log.Println("Stopped externally")
+			logger.LogWarn("Stopped externally")
 			return
 		}
 	}
 
 	// Optionally, you can wait for the tasks to complete if needed
 	// wg.Wait()
-}
-
-// Expose /metrics endpoint for Prometheus
-func (s *ServerHandler) MetricsHandler(w http.ResponseWriter, r *http.Request) {
-	// Handle the /metrics endpoint
-	promhttp.Handler().ServeHTTP(w, r)
 }

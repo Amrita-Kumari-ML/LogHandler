@@ -1,176 +1,95 @@
-# Default values for loghandler.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
 replicaCount: 1
 
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  # For logparser service
-  logparser:
-    repository: logparser-app
-    pullPolicy: IfNotPresent
-    tag: "latest"
+  repository: loggenerate
+  tag: latest
+  pullPolicy: IfNotPresent
 
-  # For loggenerate service
-  loggenerate:
-    repository: loggenerate-app
-    pullPolicy: IfNotPresent
-    tag: "latest"
+logparserImage:
+  repository: logparser
+  tag: latest
+  pullPolicy: IfNotPresent
 
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-imagePullSecrets: []
-# This is to override the chart name.
-nameOverride: ""
-fullnameOverride: ""
+postgresImage:
+  repository: postgres
+  tag: latest
+  pullPolicy: IfNotPresent
 
-# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Automatically mount a ServiceAccount's API credentials?
-  automount: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
+prometheusImage:
+  repository: prom/prometheus
+  tag: v2.25.0
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
-podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-podLabels: {}
+grafanaImage:
+  repository: grafana/grafana
+  tag: 7.3.1
 
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
-# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
-  # For logparser service
-  logparser:
-    type: ClusterIP
-    port: 8082
-
-  # For loggenerate service
-  loggenerate:
-    type: ClusterIP
-    port: 8081
-
-# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
-
-resources:
-  logparser:
-    limits:
-      cpu: "100m"
-      memory: "128Mi"
-    requests:
-      cpu: "100m"
-      memory: "128Mi"
+  loggeneratePort: 8081
+  logparserPort: 8082
+  postgresPort: 5432
+  prometheusPort: 9090
+  grafanaPort: 3000
   
-  loggenerate:
-    limits:
-      cpu: "100m"
-      memory: "128Mi"
-    requests:
-      cpu: "100m"
-      memory: "128Mi"
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
 
-# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-livenessProbe:
-  logparser:
-    httpGet:
-      path: /health
-      port: 8082
-    initialDelaySeconds: 5
-    periodSeconds: 10
+env:
 
-  loggenerate:
-    httpGet:
-      path: /health
-      port: 8081
-    initialDelaySeconds: 5
-    periodSeconds: 10
+# for log generaor
+  GENERATOR_HOST: "loggenerate"
+  GENERATOR_PORT: ":8081"
+  GENERATOR_ALIVE_URL: "/"
+  GENERATOR_START_URL : "/logs"
+  PARSER_API : "http://logparser:8082/logs"
+  GENERATOR_RATE : 10
+  GENERATOR_UNIT : "s"
 
-readinessProbe:
-  logparser:
-    httpGet:
-      path: /health
-      port: 8082
-    initialDelaySeconds: 5
-    periodSeconds: 10
+  #for log parser
+  PARSER_HOST : "logparser"
+  PARSER_PORT : ":8082"
+  PARSER_ALIVE_URL : "/"
+  PARSER_MAIN_URL : "/logs"
+  PARSER_GET_COUNT_URL : "/logs/count"
 
-  loggenerate:
-    httpGet:
-      path: /health
-      port: 8081
-    initialDelaySeconds: 5
-    periodSeconds: 10
+  #for postgres database
+  DB_PORT : "5432"
+  DB_HOST : "postgres"
+  DB_USERNAME : "postgres"
+  DB_PASSWORD : "123456"
+  DB_NAME : "logsdb"
+  DB_SSLMODE : "disable"
+  
 
-# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
-
-database:
-  host: "postgres-container"
-  port: 5432
-  user: "postgres"
+postgres:
+  username: "postgres"
   password: "123456"
-  dbname: "logsdb"
-# Additional volumes on the output Deployment definition.
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
+  db: "logsdb"
+  persistence:
+    enabled: true
+    size: 8Gi  # This is just an example size, adjust accordingly.
+    storageClass: "standard"  # You may need to customize this based on your K8s environment.
 
-# Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
+prometheus:
+  enabled: true
+  configFile: "prometheus.yml"  # Use a ConfigMap or mount it directly
 
-nodeSelector: {}
+grafana:
+  enabled: true
+  adminPassword: "admin"
+  persistence:
+    enabled: true
+    size: 1Gi  # Example size for Grafana persistence.
+    storageClass: "standard"  # Adjust based on your K8s storage setup.
 
-tolerations: []
 
-affinity: {}
+
+
+
+### **Summary of Changes**
+#- All the services (loggenerate, logparser, and postgres) are in the `templates/` directory, along with services for Prometheus and Grafana.
+#- The `values.yaml` contains configuration options for all services.
+#- `Deployment` files are separated for clarity.
+#- `Service` YAML files expose each service in your Kubernetes cluster.
+
+#You can now deploy your chart using:
+
+#```bash
+#helm install loghandler ./loghandler-helm-chart

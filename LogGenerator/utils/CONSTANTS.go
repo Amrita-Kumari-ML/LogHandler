@@ -71,3 +71,6 @@ const (
 	// Default value: "s" for seconds
 	GENERATOR_UNIT string = "s"
 )
+
+
+const FILE_NAME string = "config.yaml"
