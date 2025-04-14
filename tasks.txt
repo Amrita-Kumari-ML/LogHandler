@@ -64,44 +64,21 @@ curl -X POST http://localhost:8082/logs \
   --data-urlencode "http_x_forwarded_for=10.0.0.1"
 
 
->> tests commands
+>>Tests commands
 go test  ./...
 go test -cover ./...
 
 
-
-
-
-
-
-TODO:
--> gracefully handle the environment variables
--> communication between Docker’s (via internal call service names, via unix socket)
--> database backoff (keep trying to connect to database infinitely at some period of time like 5 minute or so...)
-(github.com/cenkalti/backoff)
--> filter the results based on pagination and load the data based on given time stamp start to end time from database
--> gracefully shutdown the docker compose 
-
-services:
-  app1:
-    restart: on-failure
-  app2:
-    restart: on-failure
-  postgres:
-    restart: unless-stopped
-
-http://localhost:8082/
-
 kubectl port-forward deployment/loggenerate 8081:8081
 
->> golang project building
+>>Golang project building
 
 go build -o logparser .
 
 psql -h 172.22.0.2 -U postgres -d logsdb -p 5432
 
 
->> Docker commands
+>>Docker commands
 
 docker build -t <image-name> .            # Build image from Dockerfile
 docker images                             # List images
@@ -121,7 +98,7 @@ docker logs <container-name>               # View logs
 docker logs -f <container-name>            # Follow logs
 
 
->> Docker Hub commands
+>>Docker Hub commands
 
 docker-compose up                  # Start all services
 docker-compose up -d               # Start in detached mode
@@ -140,7 +117,7 @@ docker-compose logs <service>      # Logs for a specific service
 
 docker system prune                # Remove all stopped containers, unused networks/images
 
->> HELM commands
+>>HELM commands
 
 helm version                        # Show Helm version
 helm help                           # List Helm command help
@@ -199,3 +176,24 @@ kubectl port-forward pod/<pod-name> 8080:8080                                  #
 kubectl port-forward deployment/loggenerate 8081:8081
 kubectl port-forward deployment/logparser 8082:8082
 kubectl port-forward deployment/postgres 5432:5432
+
+
+
+-----------------------------------------------------------------------------------------------------------
+>>TODO:
+-> gracefully handle the environment variables
+-> communication between Docker’s (via internal call service names, via unix socket)
+-> database backoff (keep trying to connect to database infinitely at some period of time like 5 minute or so...)
+(github.com/cenkalti/backoff)
+-> filter the results based on pagination and load the data based on given time stamp start to end time from database
+-> gracefully shutdown the docker compose 
+
+services:
+  app1:
+    restart: on-failure
+  app2:
+    restart: on-failure
+  postgres:
+    restart: unless-stopped
+
+http://localhost:8082/

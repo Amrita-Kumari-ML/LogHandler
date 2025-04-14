@@ -1,14 +1,19 @@
 # Log Handler
 
-# Log Generator
+## Log Generator
 
-# LogParser
+**LogGenerator** is a Go-based HTTP server application designed to generate logs 
 
-**LogParser** is a Go-based HTTP server application designed to parse and manage web logs stored in a PostgreSQL database. It allows you to filter, retrieve, count, add, and delete logs from the database using a set of flexible RESTful API endpoints. 
+  - GET ('/') : Is ALive 
+  - POST ('/logs') : Generate Logs
+
+## LogParser
+
+**LogParser** is a Go-based HTTP server application designed to parse and manage logs stored in a PostgreSQL database. It allows you to filter, retrieve, count, add, and delete logs from the database using a set of flexible RESTful API endpoints. 
 
 The application uses a configuration-driven approach, where you can specify database connection details, server settings, and other parameters via environment variables or YAML configuration files. This makes it highly customizable and adaptable for various environments.
 
-## Table of Contents
+### Table of Contents
 
 1. [Features](#features)
 2. [API Endpoints](#api-endpoints)
@@ -26,7 +31,7 @@ The application uses a configuration-driven approach, where you can specify data
 5. [Database Schema](#database-schema)
 6. [License](#license)
 
-## Features
+### Features
 
 - **Filter Logs**: Allows filtering logs based on `remote_addr`, `status`, `start_time`, `end_time`, etc.
 - **Pagination**: Fetch logs with pagination (`page` and `limit` parameters).
@@ -39,9 +44,9 @@ The application uses a configuration-driven approach, where you can specify data
 - **Health Check**: Check the status of the server to ensure it is running correctly.
 - **Configuration**: Flexible configuration using either environment variables or a YAML file.
 
-## API Endpoints
+### API Endpoints
 
-### 1. Health Check (GET `/`)
+#### 1. Health Check (GET `/`)
 
 - **Description**: This endpoint provides a simple health check to determine if the server is up and running.
 - **Request Example**:
@@ -51,21 +56,20 @@ The application uses a configuration-driven approach, where you can specify data
 
 
 
+### Configuration
 
-## Configuration
-
-### Environment Variables
+#### Environment Variables
 
 LogParser allows configuration via environment variables. These variables can be set in your environment or in a `.env` file for local development. Below is the list of environment variables that the application uses:
 
-#### Server Configuration:
+##### Server Configuration:
 - `PARSER_HOST` (default: `logparser`): The hostname of the LogParser service.
 - `PARSER_PORT` (default: `:8083`): The port on which the server will listen. 
 - `PARSER_ALIVE_URL` (default: `/`): The URL path for the health check endpoint.
 - `PARSER_MAIN_URL` (default: `/logs`): The URL path for fetching logs.
 - `PARSER_GET_COUNT_URL` (default: `/logs/count`): The URL path for fetching log counts.
 
-#### Database Configuration:
+##### Database Configuration:
 - `DB_HOST` (default: `postgres`): The hostname of the PostgreSQL database.
 - `DB_PORT` (default: `5432`): The port on which the PostgreSQL database is running.
 - `DB_USERNAME` (default: `postgres`): The database username.
@@ -75,7 +79,7 @@ LogParser allows configuration via environment variables. These variables can be
 - `TABLE_NAME` (default: `logs`): The name of the table in the database where logs are stored.
 - `CREATE_TABLE_QUERY` (default: `"CREATE TABLE IF NOT EXISTS logs (...)"`): The SQL query to create the `logs` table if it doesn't exist.
 
-#### Example `.env` file:
+##### Example `.env` file:
 ```bash
         PARSER_HOST=logparser
         PARSER_PORT=:8083
@@ -93,13 +97,13 @@ LogParser allows configuration via environment variables. These variables can be
         CREATE_TABLE_QUERY="CREATE TABLE IF NOT EXISTS logs (id SERIAL PRIMARY KEY, remote_addr VARCHAR(255), remote_user VARCHAR(255), time_local TIMESTAMP, request VARCHAR(255), status INT, body_bytes_sent INT, http_referer VARCHAR(255), http_user_agent VARCHAR(255), http_x_forwarded_for VARCHAR(255));"
 ```
 
-## YAML Configuration File
+### YAML Configuration File
 
 In addition to environment variables, you can configure LogParser using a YAML configuration file. This file allows you to define all your settings in one place, making it easier to manage and maintain your configuration.
 
 You can use a YAML file to configure both the server and database settings. Here's an example of how to structure the `config.yaml` file:
 
-### Example `config.yaml`:
+#### Example `config.yaml`:
 
 ```yaml
 server:
@@ -131,15 +135,15 @@ database:
     );
 ```
 
-## Installation
+### Installation
 
 LogParser can be set up in two ways: using Docker or by setting it up manually. Both options are described below.
 
-### Docker Setup
+#### Docker Setup
 
 Docker is an efficient way to deploy LogParser with all dependencies, including PostgreSQL, in an isolated environment. Follow the steps below to set up LogParser using Docker.
 
-#### Steps to set up LogParser using Docker:
+##### Steps to set up LogParser using Docker:
 
 1. **Clone the repository**:
    First, clone the LogParser repository to your local machine.
@@ -147,11 +151,11 @@ Docker is an efficient way to deploy LogParser with all dependencies, including 
    git clone https://github.com/yourusername/logparser.git
 
 
-### Manual Setup
+#### Manual Setup
 
 Follow these steps to set up LogParser manually on your local machine without Docker. This approach allows you to install and run the application in your preferred environment.
 
-#### Steps to set up LogParser manually:
+##### Steps to set up LogParser manually:
 
 1. **Clone the Repository**:
    First, clone the LogParser repository to your local machine by running the following command:
@@ -159,11 +163,11 @@ Follow these steps to set up LogParser manually on your local machine without Do
    git clone https://github.com/yourusername/logparser.git
 
 
-### 5. Database Schema
+#### 5. Database Schema
 
 LogParser uses a PostgreSQL database to store logs. The schema consists of a single table, `logs`, that contains the data from web server logs. The table is designed to efficiently store and query logs with various attributes such as IP addresses, timestamps, request types, status codes, and more.
 
-#### Schema Overview
+##### Schema Overview
 
 The `logs` table is structured as follows:
 
@@ -183,20 +187,20 @@ CREATE TABLE IF NOT EXISTS logs (
 ```
 
 
-# LogHandler Helm Chart
+## LogHandler Helm Chart
 
 This Helm chart deploys log generation and parsing services along with monitoring using Prometheus and Grafana.
 
-## Install the chart
+### Install the chart
 
 ```bash
 helm install loghandler ./loghandler-helm-chart
 
 ```
 
-## License
+### License
 
-### Expanded Sections in the `README.md`:
+#### Expanded Sections in the `README.md`:
 
 1. **Features**: Added descriptions for each feature (filtering, pagination, CRUD operations, etc.).
 2. **API Endpoints**: Full details of each endpoint with examples of requests and responses for:

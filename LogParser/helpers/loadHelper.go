@@ -47,15 +47,12 @@ type EndPointHandler struct{}
 // startServer starts the HTTP server, which listens for incoming requests on the port 
 // defined in the configuration. The server handles requests for specific paths and endpoints.
 func (s *Servers) startServer() error{
-	// Logs the port number the server is starting on.
 	fmt.Println("Starting log generator server on port", utils.ConfigData.PORT)
-	
-	// Register HTTP handler functions for various paths.
+		
 	http.HandleFunc(utils.PARSER_ALIVE_URL, handlers.IsAlive)            // Handler for /alive
 	http.HandleFunc(utils.PARSER_MAIN_URL, handlers.HandleType)          // Handler for /parse
 	http.HandleFunc(utils.PARSER_GET_COUNT_URL, handlers.GetLogsCountHandler) // Handler for /logs/count
 	
-	// Log the current configuration data (for debugging and verification).
 	fmt.Println("Current Configuration Data:", utils.ConfigData)
 	
 	// Start the HTTP server and listen on the configured port.
