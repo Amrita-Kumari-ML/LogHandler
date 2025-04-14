@@ -7,5 +7,5 @@ spec:
     app: loggenerate
   ports:
     - protocol: TCP
-      port: {{ .Values.service.loggeneratePort }}
-      targetPort: {{ .Values.service.loggeneratePort }}
+      port: 8081
+      targetPort: 8081

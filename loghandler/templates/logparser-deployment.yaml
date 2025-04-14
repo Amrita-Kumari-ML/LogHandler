@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logparser
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logparser
+  template:
+    metadata:
+      labels:
+        app: logparser
+    spec:
+      containers:
+        - name: logparser
+          image: "{{ .Values.logparser.image.repository }}:{{ .Values.logparser.image.tag }}"
+          imagePullPolicy: {{ .Values.logparser.image.pullPolicy }}
+          #image: {{ .Values.logparser.image }}
+          ports:
+            - containerPort: 8082
+          env:
+            - name: PARSER_HOST
+              value: {{ .Values.logparser.env.PARSER_HOST | quote }}
+            - name: PARSER_PORT
+              value: {{ .Values.logparser.env.PARSER_PORT | quote }}
+            - name: PARSER_ALIVE_URL
+              value: {{ .Values.logparser.env.PARSER_ALIVE_URL | quote }}
+            - name: PARSER_GET_COUNT_URL
+              value: {{ .Values.logparser.env.PARSER_GET_COUNT_URL | quote }}
+            - name: DB_PORT
+              value: {{ .Values.postgres.env.DB_PORT | quote }}
+            - name: DB_HOST
+              value: {{ .Values.postgres.env.DB_HOST | quote }}
+            - name: DB_USERNAME
+              value: {{ .Values.postgres.env.DB_USERNAME | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.postgres.env.DB_PASSWORD | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgres.env.DB_NAME | quote }}
+            - name: DB_SSLMODE
+              value: {{ .Values.postgres.env.DB_SSLMODE | quote }}
+          volumeMounts:
+            - name: log-data
+              mountPath: /app/data
+      volumes:
+        - name: log-data
+          emptyDir: {}  # You can use PVC here if needed
+

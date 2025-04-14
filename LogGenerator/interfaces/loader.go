@@ -3,10 +3,10 @@ package interfaces
 // ServerLoader defines the interface for starting and stopping the server.
 type ServerLoader interface{
 
-	// startServer starts the HTTP server to handle incoming requests.
+	// StartServer starts the HTTP server to handle incoming requests.
 	StartServer() error
 
-	// stopServer stops the running HTTP server gracefully.
+	// StopServer stops the running HTTP server gracefully.
 	StopServer() error
 }
 

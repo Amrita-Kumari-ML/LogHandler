@@ -1,6 +1,82 @@
+Log Hanlder
+>>Log Generator
+  - api -> curl http://localhost:8081/
+  - api -> 
+
+  curl -X POST http://localhost:8081/logs \
+  -H "Content-Type: application/json" \
+  -d '{"num_logs": 1, "time": "s"}'
+
+>>Log Parser
+  - api -> curl http://localhost:8082/
+  - api -> 
+
+curl -X POST http://localhost:8082/logs \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "remote_addr": "192.168.0.1",
+      "remote_user": "User Name",
+      "time_local": "2025-04-13T14:55:00Z",
+      "request": "GET /index.html HTTP/1.1",
+      "status": 200,
+      "body_bytes_sent": 512,
+      "http_referer": "http://example.com",
+      "http_user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      "http_x_forwarded_for": "203.0.113.195"
+    }
+  ]'
+
+  - api -> curl -X GET "http://localhost:8082/logs"
+  - api -> curl -X GET "http://localhost:8082/logs?remote_addr=192.168.1.2&start_time=2025-04-08T06:57:05Z&end_time=2025-04-08T06:57:10Z&limit=20&cursor=2025-04-09T06:42:30Z"
+  - api -> 
+
+  curl -G "http://localhost:8082/logs" \
+  --data-urlencode "remote_addr=192.168.1.1" \
+  --data-urlencode "status=200" \
+  --data-urlencode "body_bytes_sent=512" \
+  --data-urlencode "http_referer=https://www.google.com" \
+  --data-urlencode "http_user_agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36" \
+  --data-urlencode "http_x_forwarded_for=10.0.0.1" \
+  --data-urlencode "start_time=2025-04-10T00:00:00Z" \
+  --data-urlencode "end_time=2025-04-13T23:59:59Z" \
+  --data-urlencode "limit=5" \
+  --data-urlencode "cursor=2025-04-09T06:42:30Z"  
+
+  - api -> 
+
+  curl -G "http://localhost:8082/logs/count" \
+  --data-urlencode "remote_addr=192.168.1.1" \
+  --data-urlencode "status=200" \
+  --data-urlencode "body_bytes_sent=512" \
+  --data-urlencode "http_referer=https://www.google.com" \
+  --data-urlencode "http_user_agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36" \
+  --data-urlencode "http_x_forwarded_for=10.0.0.1" 
+
+  - api -> 
+  
+  curl -X DELETE "http://localhost:8082/logs" \
+  --data-urlencode "remote_addr=192.168.1.1" \
+  --data-urlencode "status=200" \
+  --data-urlencode "body_bytes_sent=512" \
+  --data-urlencode "http_referer=https://www.google.com" \
+  --data-urlencode "http_user_agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36" \
+  --data-urlencode "http_x_forwarded_for=10.0.0.1"
+
+
+>> tests commands
+go test  ./...
+go test -cover ./...
+
+
+
+
+
+
+
 TODO:
 -> gracefully handle the environment variables
--> communication between Docker’s (via internal call service names , via unix socket)
+-> communication between Docker’s (via internal call service names, via unix socket)
 -> database backoff (keep trying to connect to database infinitely at some period of time like 5 minute or so...)
 (github.com/cenkalti/backoff)
 -> filter the results based on pagination and load the data based on given time stamp start to end time from database
@@ -14,34 +90,112 @@ services:
   postgres:
     restart: unless-stopped
 
-func main(){
-    srv := &http.Server{Addr: ":8080"}
-    // Handle shutdown gracefully
-    go func() {
-        if err := srv.ListenAndServe(); err != nil {
-            log.Fatal(err)
-        }
-    }()
+http://localhost:8082/
 
-    // Wait for interrupt signal to gracefully shutdown the server
-    sigs := make(chan os.Signal, 1)
-    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-    <-sigs
+kubectl port-forward deployment/loggenerate 8081:8081
 
-    log.Println("Shutting down server...")
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
-    if err := srv.Shutdown(ctx); err != nil {
-        log.Fatal("Server shutdown failed:", err)
-    }
-    log.Println("Server gracefully stopped")
-}
+>> golang project building
+
+go build -o logparser .
+
+psql -h 172.22.0.2 -U postgres -d logsdb -p 5432
 
 
+>> Docker commands
 
-http://localhost:3000/
+docker build -t <image-name> .            # Build image from Dockerfile
+docker images                             # List images
+docker rmi <image-id|image-name>         # Remove image
 
-http://localhost:8081/metrics
 
-http://localhost:9090/targets
+docker run -d -p 8080:80 --name myapp <image>       # Run container in detached mode
+docker ps                                           # List running containers
+docker ps -a                                        # List all containers
+docker stop <container-id|name>                    # Stop container
+docker start <container-id|name>                   # Start container
+docker restart <container-id|name>                 # Restart container
+docker rm <container-id|name>                      # Remove container
 
+docker exec -it <container-name> bash      # Get shell in container
+docker logs <container-name>               # View logs
+docker logs -f <container-name>            # Follow logs
+
+
+>> Docker Hub commands
+
+docker-compose up                  # Start all services
+docker-compose up -d               # Start in detached mode
+docker-compose down                # Stop and remove containers, networks, etc.
+docker-compose down -v             # Stop and remove everything including volumes
+
+
+docker-compose build               # Build or rebuild services
+docker-compose up --build          # Rebuild and run
+
+docker-compose ps                  # List services and their state
+docker-compose logs                # Show logs for all services
+docker-compose logs -f             # Follow logs
+docker-compose logs <service>      # Logs for a specific service
+
+
+docker system prune                # Remove all stopped containers, unused networks/images
+
+>> HELM commands
+
+helm version                        # Show Helm version
+helm help                           # List Helm command help
+
+helm repo add <name> <repo_url>         # Add a chart repository
+helm repo update                        # Update repo index
+helm search repo <chart-name>           # Search charts in repos
+helm pull <repo/chart> --untar          # Download a chart locally
+
+helm install <release-name> <chart>             # Install chart
+helm install <release> <chart> -f values.yaml   # With custom values
+helm upgrade <release-name> <chart>             # Upgrade release
+helm upgrade --install <release> <chart>        # Upgrade if exists, install if not
+
+helm uninstall <release-name>        # Uninstall a release
+
+helm list                            # List all releases
+helm list -A                         # List across all namespaces
+helm status <release-name>           # Status of a release
+
+helm upgrade <release> <chart> --dry-run --debug      # Simulate an upgrade
+helm install <release> <chart> --dry-run --debug      # Simulate install
+
+helm show values <chart>                   # Show default values
+helm get values <release-name>             # Get current values
+helm get manifest <release-name>           # Get rendered Kubernetes manifests
+
+helm template <release> <chart>            # Render chart to YAML (no install)
+
+
+-----------
+kubectl version                          # Show kubectl & server version
+kubectl cluster-info                     # Show cluster endpoint info
+kubectl get all                          # Show all resources in the current namespace
+kubectl get namespaces                   # List all namespaces
+
+kubectl get pods                         # List pods
+kubectl get pods -n <namespace>          # List pods in specific namespace
+kubectl describe pod <pod-name>          # Detailed info about a pod
+kubectl logs <pod-name>                  # Get logs from a pod
+kubectl exec -it <pod-name> -- bash      # Open shell inside a pod (if bash available)
+kubectl delete pod <pod-name>            # Delete a pod
+
+kubectl get deployments                  # List deployments
+kubectl create deployment <name> --image=<image>          # Create deployment
+kubectl describe deployment <name>       # Get deployment details
+kubectl scale deployment <name> --replicas=3              # Scale pods
+kubectl rollout restart deployment <name>                 # Restart deployment
+kubectl delete deployment <name>         # Delete deployment
+
+kubectl get svc                          # List services
+kubectl expose deployment <name> --port=80 --target-port=8080 --type=NodePort  # Expose deployment
+kubectl port-forward svc/<service-name> 8080:80                                # Forward port from service
+kubectl port-forward pod/<pod-name> 8080:8080                                  # Forward port from pod
+
+kubectl port-forward deployment/loggenerate 8081:8081
+kubectl port-forward deployment/logparser 8082:8082
+kubectl port-forward deployment/postgres 5432:5432

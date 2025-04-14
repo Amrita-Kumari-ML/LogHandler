@@ -30,12 +30,10 @@ type Servers struct{}
 //   server := &Servers{}
 //   server.startServer()
 func (s *Servers) StartServer() error{
-	// Initialize the ServerHandler, which handles the server responses and log generation.
 	serv := &server.ServerHandler{
 		ResponseW: &utils.ResponseHandler{},
 		LogGen: &loggenerator.Generator{},
 	}
-	//server start logic
 	http.HandleFunc(utils.GloablMetaData.IsAliveUrl, serv.IsAlive)
 	http.HandleFunc(utils.GloablMetaData.GenerateUrl, serv.LogHandler)
 	//http.HandleFunc("/gen", serv.LogTestHandler)

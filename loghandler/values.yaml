@@ -1,95 +1,64 @@
-replicaCount: 1
+loggenerate:
+  image:
+    repository: loggenerate
+    tag: latest
+    pullPolicy: IfNotPresent
+  port: 8081
+  env:
+    GENERATOR_HOST: loggenerate
+    GENERATOR_PORT: ":8081"
+    GENERATOR_ALIVE_URL: "/"
+    GENERATOR_START_URL: "/logs"
+    PARSER_API: "http://logparser:8082/logs"
+    GENERATOR_RATE: 10
+    GENERATOR_UNIT: "s"
 
-image:
-  repository: loggenerate
-  tag: latest
-  pullPolicy: IfNotPresent
+logparser:
+  image:
+    repository: logparser
+    tag: latest
+    pullPolicy: IfNotPresent
+  port: 8082
+  env:
+    PARSER_HOST: logparser
+    PARSER_PORT: ":8082"
+    PARSER_ALIVE_URL: "/"
+    PARSER_ADD_URL: "/logs"
+    PARSER_GET_URL: "/logs"
+    PARSER_GET_COUNT_URL: "/logs/count"
+    PARSER_DELETE_URL: "/logs"
 
-logparserImage:
-  repository: logparser
-  tag: latest
-  pullPolicy: IfNotPresent
-
-postgresImage:
-  repository: postgres
-  tag: latest
-  pullPolicy: IfNotPresent
-
-prometheusImage:
-  repository: prom/prometheus
-  tag: v2.25.0
-
-grafanaImage:
-  repository: grafana/grafana
-  tag: 7.3.1
-
-service:
-  loggeneratePort: 8081
-  logparserPort: 8082
-  postgresPort: 5432
-  prometheusPort: 9090
-  grafanaPort: 3000
-  
-
-env:
-
-# for log generaor
-  GENERATOR_HOST: "loggenerate"
-  GENERATOR_PORT: ":8081"
-  GENERATOR_ALIVE_URL: "/"
-  GENERATOR_START_URL : "/logs"
-  PARSER_API : "http://logparser:8082/logs"
-  GENERATOR_RATE : 10
-  GENERATOR_UNIT : "s"
-
-  #for log parser
-  PARSER_HOST : "logparser"
-  PARSER_PORT : ":8082"
-  PARSER_ALIVE_URL : "/"
-  PARSER_MAIN_URL : "/logs"
-  PARSER_GET_COUNT_URL : "/logs/count"
-
-  #for postgres database
-  DB_PORT : "5432"
-  DB_HOST : "postgres"
-  DB_USERNAME : "postgres"
-  DB_PASSWORD : "123456"
-  DB_NAME : "logsdb"
-  DB_SSLMODE : "disable"
-  
+    DB_PORT: "5432"
+    DB_HOST: postgres
+    DB_USERNAME: "postgres"
+    DB_PASSWORD: "123456"
+    DB_NAME: "logsdb"
+    DB_SSLMODE: "disable"
 
 postgres:
-  username: "postgres"
-  password: "123456"
-  db: "logsdb"
-  persistence:
-    enabled: true
-    size: 8Gi  # This is just an example size, adjust accordingly.
-    storageClass: "standard"  # You may need to customize this based on your K8s environment.
+  image: postgres:latest
+  port: 5432
+  env:
+    POSTGRES_USER: "postgres"
+    POSTGRES_PASSWORD: "123456"
+    POSTGRES_DB: "logsdb"
 
-prometheus:
-  enabled: true
-  configFile: "prometheus.yml"  # Use a ConfigMap or mount it directly
+serviceAccount:
+  create: true
+  name: ""
 
-grafana:
-  enabled: true
-  adminPassword: "admin"
-  persistence:
-    enabled: true
-    size: 1Gi  # Example size for Grafana persistence.
-    storageClass: "standard"  # Adjust based on your K8s storage setup.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
 
-
-
-
-
-### **Summary of Changes**
-#- All the services (loggenerate, logparser, and postgres) are in the `templates/` directory, along with services for Prometheus and Grafana.
-#- The `values.yaml` contains configuration options for all services.
-#- `Deployment` files are separated for clarity.
-#- `Service` YAML files expose each service in your Kubernetes cluster.
-
-#You can now deploy your chart using:
-
-#```bash
-#helm install loghandler ./loghandler-helm-chart
+service:
+  type: ClusterIP  # Or NodePort, LoadBalancer, etc.
+  port: 8081

@@ -8,9 +8,7 @@ import (
 	"LogParser/utils"
 	"database/sql"
 	"fmt"
-	_ "log"
-
-	_ "github.com/lib/pq" // Importing the Postgres driver
+	_ "github.com/lib/pq"
 )
 
 var DB *sql.DB            // Global variable holding the database connection

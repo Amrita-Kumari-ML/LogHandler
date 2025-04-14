@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loggenerate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loggenerate
+  template:
+    metadata:
+      labels:
+        app: loggenerate
+    spec:
+      containers:
+        - name: loggenerate
+          image: "{{ .Values.loggenerate.image.repository }}:{{ .Values.loggenerate.image.tag }}"
+          imagePullPolicy: {{ .Values.loggenerate.image.pullPolicy }}
+          ports:
+            - containerPort: 8081
+          env:
+            - name: GENERATOR_HOST
+              value: {{ .Values.loggenerate.env.GENERATOR_HOST | quote }}
+            - name: GENERATOR_PORT
+              value: {{ .Values.loggenerate.env.GENERATOR_PORT | quote }}
+            - name: GENERATOR_ALIVE_URL
+              value: {{ .Values.loggenerate.env.GENERATOR_ALIVE_URL | quote }}
+            - name: GENERATOR_START_URL
+              value: {{ .Values.loggenerate.env.GENERATOR_START_URL | quote }}
+            - name: PARSER_API
+              value: {{ .Values.loggenerate.env.PARSER_API | quote }}
+            - name: GENERATOR_RATE
+              value: {{ .Values.loggenerate.env.GENERATOR_RATE | quote }}
+            - name: GENERATOR_UNIT
+              value: {{ .Values.loggenerate.env.GENERATOR_UNIT | quote }}
+

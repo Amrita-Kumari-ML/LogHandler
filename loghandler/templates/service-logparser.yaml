@@ -7,5 +7,5 @@ spec:
     app: logparser
   ports:
     - protocol: TCP
-      port: {{ .Values.service.logparserPort }}
-      targetPort: {{ .Values.service.logparserPort }}
+      port: 8082
+      targetPort: 8082
