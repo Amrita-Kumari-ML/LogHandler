@@ -300,64 +300,43 @@ func TestRequestPayloadEdgeCase(t *testing.T) {
 
 
 func TestResponseMarshalling(t *testing.T) {
-	// Test case for a successful response with data
 	successResponse := Response{
 		Status:  true,
 		Message: "Logs generated successfully",
 		Data:    json.RawMessage(`[{"log": "data"}]`),
 	}
 
-	// Marshalling the response struct to JSON
 	marshalledJSON, err := json.Marshal(successResponse)
-
-	// We expect no error during marshalling
 	assert.NoError(t, err, "Marshalling should not return an error")
 
-	// Check if the resulting JSON contains the expected fields
 	expectedJSON := `{"status":true,"message":"Logs generated successfully","data":[{"log": "data"}]}`
 	assert.JSONEq(t, expectedJSON, string(marshalledJSON), "The marshalled JSON should match the expected value")
-
-	// Test case for a failed response without data
 	failedResponse := Response{
 		Status:  false,
 		Message: "Failed to generate logs",
 		Data:    nil,
 	}
-
-	// Marshalling the failed response struct to JSON
 	marshalledFailedJSON, err := json.Marshal(failedResponse)
-
-	// We expect no error during marshalling
 	assert.NoError(t, err, "Marshalling should not return an error")
 
-	// Check if the resulting JSON contains the expected fields
 	expectedFailedJSON := `{"status":false,"message":"Failed to generate logs","data":null}`
 	assert.JSONEq(t, expectedFailedJSON, string(marshalledFailedJSON), "The marshalled failed response JSON should match the expected value")
 }
 
 func TestResponseUnmarshalling(t *testing.T) {
-	// Valid JSON input for a successful response
 	validJSON := `{"status":true,"message":"Logs generated successfully","data":[{"log": "data"}]}`
+
 	var validResponse Response
 	err := json.Unmarshal([]byte(validJSON), &validResponse)
-
-	// We expect no error during unmarshalling
 	assert.NoError(t, err, "Unmarshalling valid JSON should not return an error")
-
-	// Check if the unmarshalled struct matches the expected values
 	assert.True(t, validResponse.Status, "The status should be true")
 	assert.Equal(t, "Logs generated successfully", validResponse.Message, "The message should match the expected string")
 	assert.JSONEq(t, `[{"log": "data"}]`, string(validResponse.Data), "The data should match the expected JSON")
-
-	// Invalid JSON input (missing required fields)
+	
 	invalidJSON := `{"status":true,"message":"Missing data"}`
 	var invalidResponse Response
 	err = json.Unmarshal([]byte(invalidJSON), &invalidResponse)
-
-	// We expect no error during unmarshalling, but `Data` should be nil (because it's missing in the input)
 	assert.NoError(t, err, "Unmarshalling invalid JSON should not return an error")
-
-	// Check if the unmarshalled struct has `Data` as nil
 	assert.Nil(t, invalidResponse.Data, "Data should be nil if it's missing in the JSON")
 }
 

@@ -17,7 +17,7 @@ import (
 
 
 func init() {
-	logger.InitializeLogger("error") // suppress debug/info in tests
+	logger.InitLogger("error") // suppress debug/info in tests
 }
 func TestFirstLoad_WithEnvVars(t *testing.T) {
 	// Set mock environment variable
@@ -371,7 +371,7 @@ func TestGetPaginationParams(t *testing.T) {
 	pagination := GetPaginationParams(req)
 
 	// Assert that pagination is parsed correctly
-	assert.Equal(t, 2, pagination.Page)
+	assert.Equal(t, 2, pagination.CursorID)
 	assert.Equal(t, 20, pagination.Limit)
 	assert.NotNil(t, pagination.Cursor)
 	assert.Equal(t, time.Date(2025, time.April, 10, 10, 30, 0, 0, time.UTC), *pagination.Cursor)
@@ -385,7 +385,7 @@ func TestGetPaginationParamsWithDefaults(t *testing.T) {
 	pagination := GetPaginationParams(req)
 
 	// Assert that default pagination values are used
-	assert.Equal(t, 1, pagination.Page)
+	assert.Equal(t, 1, pagination.CursorID)
 	assert.Equal(t, 10, pagination.Limit)
 	assert.NotNil(t, pagination.Cursor)
 }

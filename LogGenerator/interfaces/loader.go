@@ -12,6 +12,6 @@ type ServerLoader interface{
 
 // ConfigurationLoader defines the interface for refreshing and updating the server configuration.
 type ConfigurationLoader interface {
-	// refreshServer refreshes the server's configuration by reloading the settings.
+	// RefreshServer refreshes the server's configuration by reloading the settings.
 	RefreshServer() error
 }

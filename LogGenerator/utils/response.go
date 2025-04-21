@@ -4,6 +4,7 @@ import (
 	"LogGenerator/logger"
 	"LogGenerator/models"
 	"encoding/json"
+	"fmt"
 	_ "log"
 	"net/http"
 )
@@ -38,14 +39,16 @@ type ResponseHandler struct{}
 //
 //   // Send a failed response without data
 //   handler.SendResponse(w, http.StatusBadRequest, false, "Invalid input", nil)
-func (r *ResponseHandler) SendResponse(w http.ResponseWriter, statusCode int, success bool, message string, data interface{}){
+func (r *ResponseHandler) SendResponse(w http.ResponseWriter, statusCode int, success bool, message string, data interface{}) {
+	fmt.Println("Called ---------------------+++++++++++++++++++++")
+
 	var jsonData json.RawMessage
 	if data != nil {
 		var err error
 		jsonData, err = json.Marshal(data)
 		if err != nil {
-			logger.LogError("Internal Server Error")
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			logger.LogError("Failed to marshal response data")
+			// Don't attempt to write anything if marshaling fails
 			return
 		}
 	}
@@ -56,11 +59,13 @@ func (r *ResponseHandler) SendResponse(w http.ResponseWriter, statusCode int, su
 		Data:    jsonData,
 	}
 
+	// Set headers
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	err := json.NewEncoder(w).Encode(resp)
-	if err != nil {
-		logger.LogError("Json decode failed!")
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+
+	// Encode writes the headers too, automatically
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		logger.LogError(fmt.Sprintf("Failed to encode response JSON: %v", err))
+		// DO NOT write to `w` again here
 	}
 }
+

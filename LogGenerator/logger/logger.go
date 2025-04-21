@@ -5,16 +5,13 @@ import (
 	"os"
 )
 
-// Global logger variable
+// Log global logger variable
 var Log *logrus.Logger
 
 // InitializeLogger initializes the logrus logger with necessary configurations
 // It can be called once at the start of your application
 func InitializeLogger(logLevel string) *logrus.Logger {
-	// Create a new instance of the logger
 	Log = logrus.New()
-
-	// Set the output to stdout or a file
 	Log.SetOutput(os.Stdout)
 
 	// Set the log level dynamically
@@ -29,22 +26,14 @@ func InitializeLogger(logLevel string) *logrus.Logger {
 	case "error":
 		Log.SetLevel(logrus.ErrorLevel)
 	default:
-		Log.SetLevel(logrus.InfoLevel) // Default to Info level if invalid
+		Log.SetLevel(logrus.InfoLevel)
 	}
 
-	// Set log format - you can use JSONFormatter or TextFormatter
 	Log.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true, // Show timestamps in logs
-		ForceColors:   true, // Force color output for terminal
+		FullTimestamp: true,
+		ForceColors:   true,
 	})
-
-	// Optional: If you want to log to a file, uncomment the below code
-	// Log.SetOutput(&lumberjack.Logger{
-	//		Filename:   "./logs/logfile.log",
-	//		MaxSize:    10,  // megabytes
-	//		MaxBackups: 3,
-	//		MaxAge:     28, // days
-	// })
+	
 	return Log
 }
 

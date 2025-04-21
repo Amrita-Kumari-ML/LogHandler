@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LogHandler API Tester</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { padding: 30px; background-color: #f8f9fa; }
+    .response-box {
+      white-space: pre-wrap;
+      background-color: #fff;
+      border: 1px solid #dee2e6;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+    }
+    .section {
+      margin-top: 40px;
+      padding: 20px;
+      border: 1px solid #ced4da;
+      border-radius: 5px;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1 class="text-center mb-5">LogHandler API Tester</h1>
+
+  <!-- Log Generator -->
+  <div class="section">
+    <h3>🧾 Log Generator (http://localhost:8081)</h3>
+    
+    <button class="btn btn-outline-primary mb-2" onclick="sendRequest('GET', 'http://localhost:8081/', null, 'gen-response')">GET /</button>
+
+    <h5>POST /logs</h5>
+    <textarea id="gen-post-body" class="form-control mb-2" rows="3">
+{
+  "num_logs": 1,
+  "time": "s"
+}
+    </textarea>
+    <button class="btn btn-success mb-3" onclick="sendRequest('POST', 'http://localhost:8081/logs', getValue('gen-post-body'), 'gen-response')">Send POST</button>
+
+    <div id="gen-response" class="response-box"></div>
+  </div>
+
+  <!-- Log Parser -->
+  <div class="section">
+    <h3>📊 Log Parser (http://localhost:8082)</h3>
+
+    <button class="btn btn-outline-primary mb-2" onclick="sendRequest('GET', 'http://localhost:8082/', null, 'parser-response')">GET /</button>
+    <button class="btn btn-outline-info mb-2" onclick="sendRequest('GET', 'http://localhost:8082/logs', null, 'parser-response')">GET /logs</button>
+    <button class="btn btn-outline-warning mb-2" onclick="sendRequest('GET', 'http://localhost:8082/logs/count', null, 'parser-response')">GET /logs/count</button>
+
+    <h5>POST /logs (Send raw logs array)</h5>
+    <textarea id="parser-post-body" class="form-control mb-2" rows="5">
+[
+  "192.168.1.1 - - [2025-04-13T08:30:00Z] \"GET /home HTTP/1.1\" 200 742 \"https://www.google.com\" \"Mozilla/5.0...\" \"123.45.67.89\"",
+  "10.0.0.1 - - [2025-04-13T08:31:00Z] \"POST /login HTTP/1.1\" 404 853 \"-\" \"Mozilla/5.0...\" \"98.76.54.32\""
+]
+    </textarea>
+    <button class="btn btn-success mb-3" onclick="sendRequest('POST', 'http://localhost:8082/logs', getValue('parser-post-body'), 'parser-response')">Send POST</button>
+
+    <h5>🛠 Filtered GET /logs</h5>
+    <div class="row g-2 mb-2">
+      <div class="col-md-3"><input class="form-control" id="remote_addr" placeholder="remote_addr"></div>
+      <div class="col-md-3"><input class="form-control" id="status" placeholder="status"></div>
+      <div class="col-md-3"><input class="form-control" id="body_bytes_sent" placeholder="body_bytes_sent"></div>
+      <div class="col-md-3"><input class="form-control" id="http_referer" placeholder="http_referer"></div>
+      <div class="col-md-3"><input class="form-control" id="http_user_agent" placeholder="http_user_agent"></div>
+      <div class="col-md-3"><input class="form-control" id="http_x_forwarded_for" placeholder="http_x_forwarded_for"></div>
+      <div class="col-md-3"><input class="form-control" id="start_time" placeholder="start_time (ISO format)"></div>
+      <div class="col-md-3"><input class="form-control" id="end_time" placeholder="end_time (ISO format)"></div>
+      <div class="col-md-3"><input class="form-control" id="limit" placeholder="limit"></div>
+      <div class="col-md-3"><input class="form-control" id="cursor" placeholder="cursor"></div>
+    </div>
+    <button class="btn btn-info mb-3" onclick="buildFilteredURL()">GET /logs with Filters</button>
+
+    <h5 class="mt-4">DELETE /logs (with same filters)</h5>
+    <button class="btn btn-danger mb-3" onclick="buildFilteredURL('DELETE')">DELETE Logs</button>
+
+    <div id="parser-response" class="response-box"></div>
+  </div>
+</div>
+
+<script>
+  const getValue = (id) => document.getElementById(id).value;
+
+  function sendRequest(method, url, body, responseId) {
+    const options = {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+    };
+    if (body && method !== 'GET') options.body = body;
+
+    fetch(url, options)
+      .then(res => res.text())
+      .then(data => document.getElementById(responseId).innerText = data)
+      .catch(err => document.getElementById(responseId).innerText = 'Error: ' + err);
+  }
+
+  function buildFilteredURL(method = 'GET') {
+    const base = "http://localhost:8082/logs" + (method === "GET" ? "" : method === "DELETE" ? "" : "");
+    const params = [
+      'remote_addr', 'status', 'body_bytes_sent', 'http_referer',
+      'http_user_agent', 'http_x_forwarded_for', 'start_time',
+      'end_time', 'limit', 'cursor'
+    ];
+
+    const query = params
+      .map(id => {
+        const val = document.getElementById(id).value;
+        return val ? `${encodeURIComponent(id)}=${encodeURIComponent(val)}` : '';
+      })
+      .filter(Boolean)
+      .join('&');
+
+    const fullUrl = base + (query ? '?' + query : '');
+    sendRequest(method, fullUrl, null, 'parser-response');
+  }
+</script>
+
+</body>
+</html>

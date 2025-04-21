@@ -78,89 +78,108 @@ func GetLogsCountHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetLogsHandler fetches logs based on filters and pagination, and returns them in the response.
 func GetLogsHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Get logs api hit!")
+	fmt.Println("Get logs API hit!")
+
+	// DB connection check
 	isAlive, db := connection.PingDB()
 	if !isAlive {
-		models.SendResponse(w, http.StatusInternalServerError, false, fmt.Sprintf("Failed to connect to Database!"), nil)
+		models.SendResponse(w, http.StatusInternalServerError, false, "Failed to connect to Database!", nil)
 		return
 	}
 
+	// Get total logs count
 	var totalLogs int
 	err := db.QueryRow(utils.QUERY_COUNT_ALL).Scan(&totalLogs)
 	if err != nil {
 		logger.LogWarn(fmt.Sprintf("Error fetching total log count: %v", err))
 	}
 
+	// Time and filter parsing
 	dateFilter, errs := utils.GetDateFilters(r)
 	if errs != nil {
-		logger.LogWarn(fmt.Sprintf("Error in parsing filetered dates:%v", errs))
+		logger.LogWarn(fmt.Sprintf("Error in parsing filtered dates: %v", errs))
 	}
-	
+
 	paginationFilter := utils.GetPaginationParams(r)
 	query, args := utils.GenerateFilteredGetQuery(utils.GenerateFiltersMap(r), paginationFilter, dateFilter)
 
-	//query, args := utils.GenerateFilteredGetQuery(utils.GenerateFiltersMap(r))
+	fmt.Println("Query", query)
+	// Execute the query
 	rows, err := db.Query(query, args...)
-
 	if err != nil {
 		logger.LogWarn(fmt.Sprintf("Failed to query database: %v", err))
-		models.SendResponse(w, http.StatusMethodNotAllowed, false, fmt.Sprintf("Failed to query database : %v", err), nil)
+		models.SendResponse(w, http.StatusMethodNotAllowed, false, fmt.Sprintf("Failed to query database: %v", err), nil)
 		return
-
 	}
 	defer rows.Close()
 
 	var logs []models.Log
+	var firstCursorTime time.Time
+	var firstCursorID int
+	var lastCursorTime time.Time
+	var lastCursorID int
+	isFirstRow := true
 
-	var firstLogTime, lastLogTime time.Time
 	for rows.Next() {
 		var log models.Log
-		if err := rows.Scan(&log.RemoteAddr, &log.RemoteUser, &log.TimeLocal, &log.Request, &log.Status, &log.BodyBytesSent, &log.HttpReferer, &log.HttpUserAgent, &log.HttpXForwardedFor); err != nil {
-			fmt.Printf("Failed to scan log: %v", err)
-			models.SendResponse(w, http.StatusInternalServerError, false, fmt.Sprintf("Failed to scan log : %v", err), nil)
+		var id int
+
+		// Update to scan 'id' as well
+		err := rows.Scan(&id, &log.RemoteAddr, &log.RemoteUser, &log.TimeLocal, &log.Request, &log.Status, &log.BodyBytesSent, &log.HttpReferer, &log.HttpUserAgent, &log.HttpXForwardedFor)
+		if err != nil {
+			logger.LogWarn(fmt.Sprintf("Failed to scan log: %v", err))
+			models.SendResponse(w, http.StatusInternalServerError, false, fmt.Sprintf("Failed to scan log: %v", err), nil)
 			return
 		}
 		logs = append(logs, log)
 
-		// Set the first and last log times for pagination.
-		if firstLogTime.IsZero() {
-			firstLogTime = log.TimeLocal
+		// Store first and last cursor data for pagination
+		if isFirstRow {
+			firstCursorTime = log.TimeLocal
+			firstCursorID = id
+			isFirstRow = false
 		}
-		lastLogTime = log.TimeLocal
+		lastCursorTime = log.TimeLocal
+		lastCursorID = id
 	}
 
+	// Generate pagination cursors
 	var nextCursor, prevCursor *string
-	if len(logs) > 0 {
-		// The nextCursor will be the last log's time if it's not the last page
-		if len(logs) == paginationFilter.Limit {
-			nextCursor = FormatTime(&lastLogTime)  // Only set nextCursor if we have more logs to fetch
-		}
 
-		// The prevCursor will be the first log's time if it's not the first page
-		if paginationFilter.Cursor != nil && len(logs) > 0 {
-			prevCursor = FormatTime(&firstLogTime)
+	if len(logs) > 0 {
+		if len(logs) == paginationFilter.Limit {
+			next := FormatCursor(lastCursorTime, lastCursorID)
+			nextCursor = &next
+		}
+		if paginationFilter.Cursor != nil && paginationFilter.CursorID != nil {
+			prev := FormatCursor(firstCursorTime, firstCursorID)
+			prevCursor = &prev
 		}
 	}
 
+	// Construct response
 	responseData := map[string]interface{}{
 		"count": map[string]interface{}{
-			"total": totalLogs,    // Total logs in the database
-			"fetch": len(logs),    // Logs fetched in this request
+			"total": totalLogs,
+			"fetch": len(logs),
 		},
-		"logs": logs, // Logs fetched from the database
+		"logs": logs,
 		"paging": map[string]interface{}{
-			"next_cursor": nextCursor,  // Cursor for next page
-			"prev_cursor": prevCursor,  // Cursor for previous page
-			"limit": paginationFilter.Limit, // The limit used for pagination
+			"next_cursor": nextCursor,
+			"prev_cursor": prevCursor,
+			"limit":       paginationFilter.Limit,
 		},
 	}
 
+	statusMsg := "Fetched logs successfully"
 	if len(logs) == 0 {
-		
-		models.SendResponse(w, http.StatusOK, true, "No Logs found", responseData)
-	} else {
-		models.SendResponse(w, http.StatusOK, true, "Fetched logs successfully", responseData)
+		statusMsg = "No logs found"
 	}
+	models.SendResponse(w, http.StatusOK, true, statusMsg, responseData)
+}
+
+func FormatCursor(t time.Time, id int) string {
+	return fmt.Sprintf("%s&id=%d", t.UTC().Format(time.RFC3339), id)
 }
 
 func FormatTime(t *time.Time) *string {

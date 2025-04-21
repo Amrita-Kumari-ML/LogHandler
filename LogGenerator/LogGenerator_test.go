@@ -8,13 +8,11 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// Mocking Config and Server
 type MockApplication struct {
 	mock.Mock
 }
 
 func (m *MockApplication) SetUp() error {
-	//args := m.Called()
 	return fmt.Errorf("Error while setup")
 }
 

@@ -41,7 +41,7 @@ func TestIsAlive(t *testing.T) {
 
 
 func init() {
-	logger.InitializeLogger("error") // suppress debug/info in tests
+	logger.InitLogger("error") // suppress debug/info in tests
 }
 
 // Mock versions of the handlers for testing call routing

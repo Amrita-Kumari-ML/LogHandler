@@ -16,5 +16,5 @@ type TimeFilter struct {
 type Pagination struct {
 	Limit int `json:"limit"`
 	Cursor *time.Time `json:"cursor"`
-	Page int `json:"page"`
+	CursorID   *int 
 }

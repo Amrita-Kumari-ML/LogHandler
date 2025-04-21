@@ -8,18 +8,20 @@ import (
 	"LogParser/utils"
 	"database/sql"
 	"fmt"
+	"math"
+	"time"
+
 	_ "github.com/lib/pq"
 )
 
-var DB *sql.DB            // Global variable holding the database connection
-var Config *models.DB_Config // Global variable holding the configuration data for the database
+var DB *sql.DB            
+var Config *models.DB_Config
 
 // InitDB initializes the database connection using the configuration data.
 // It first loads the configuration, then attempts to connect to the database
 // using the provided credentials and connection details. If the connection is successful,
 // it checks the database connection with a ping and ensures the necessary logs table exists.
 func InitDB() *sql.DB {
-	// Load configuration settings
 	err1 := FirstLoad()
 	if err1 != nil {
 		logger.LogError("Configuration not loaded. Exiting...\n")
@@ -41,18 +43,44 @@ func InitDB() *sql.DB {
 	)
 
 	// Open the database connection
-	DB, err = sql.Open(utils.DB_USERNAME, connStr)
+	DB, err = connectWithRetry(connStr,10)
 	if err != nil {
 		logger.LogError(fmt.Sprintf("Error connecting to the database: %v\n", err))
 	}
 
 	// Check if the connection to the database is successful
-	PingDB()
+	if _, ok := PingDB(); ok != nil{
+		logger.LogError(fmt.Sprintf("Database ping failed after connection:%v.\nExiting...", ok))
+		return ok
+	}
 
 	// Ensure the logs table exists, if not, create it
 	createLogsTableIfNotExist(*Config)
-
 	return DB
+}
+
+func connectWithRetry(connStr string, maxAttempts int) (*sql.DB, error) {
+	var db *sql.DB
+	var err error
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		db, err = sql.Open(utils.DB_USERNAME, connStr)
+		if err == nil {
+			if pingErr := db.Ping(); pingErr == nil {
+				logger.LogInfo(fmt.Sprintf("Successfully connected to the database on attempt %d", attempt))
+				return db, nil
+			} else {
+				err = pingErr
+			}
+		}
+
+		logger.LogDebug(fmt.Sprintf("Attempt %d: Failed to connect to DB - %v", attempt, err))
+
+		backoff := time.Duration(math.Min(float64(int(1)<<attempt), 60)) * 100 * time.Millisecond
+		time.Sleep(backoff)
+	}
+
+	return nil, fmt.Errorf("could not connect after %d attempts: %v", maxAttempts, err)
 }
 
 // PingDB checks the database connection by attempting to ping it.

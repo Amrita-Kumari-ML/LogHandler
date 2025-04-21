@@ -15,28 +15,28 @@ type MockLogger struct {
 
 
 func TestInitializeLogger(t *testing.T) {
-	Log = InitializeLogger("debug")
+	Log = InitLogger("debug")
 	assert.NotNil(t, Log)
 	LogDebug("This is a debug message")
 }
 
 func TestLogInfo(t *testing.T) {
-	Log = InitializeLogger("info")
+	Log = InitLogger("info")
 	LogInfo("This is an info message")
 }
 
 func TestLogWarn(t *testing.T) {
-	Log = InitializeLogger("warn")
+	Log = InitLogger("warn")
 	LogWarn("This is a warn message")
 }
 
 func TestLogError(t *testing.T) {
-	Log = InitializeLogger("error")
+	Log = InitLogger("error")
 	LogError("This is an error message")
 }
 
 func TestLogDebug(t *testing.T) {
-	Log = InitializeLogger("debug")
+	Log = InitLogger("debug")
 	LogDebug("This is a debug message")
 }
 

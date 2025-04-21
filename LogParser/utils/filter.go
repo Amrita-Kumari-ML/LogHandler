@@ -7,11 +7,8 @@ import (
 	"LogParser/logger"
 	"LogParser/models"
 	"fmt"
-	_ "fmt"
-	_ "log"
 	"net/http"
 	"strconv"
-	_ "strings"
 	"time"
 )
 
@@ -23,41 +20,33 @@ import (
 // Returns:
 //   - A map where the keys are filter names and the values are the corresponding filter values.
 func GenerateFiltersMap(r *http.Request) map[string]interface{} {
-	// Initialize an empty map to hold the filter key-value pairs.
 	filters := make(map[string]interface{})
 
-	// Check if the query parameter for remote address exists, and if so, add it to the filters map.
 	if remoteAddr := r.URL.Query().Get("remote_addr"); remoteAddr != "" {
 		filters["remote_addr"] = remoteAddr
 	}
-	// Check if the query parameter for status exists and is a valid integer.
 	if status := r.URL.Query().Get("status"); status != "" {
 		statusInt, err := strconv.Atoi(status)
 		if err == nil {
 			filters["status"] = statusInt
 		}
 	}
-	// Check if the query parameter for body bytes sent exists and is a valid integer.
 	if bodyBytesSent := r.URL.Query().Get("body_bytes_sent"); bodyBytesSent != "" {
 		bodyBytesSentInt, err := strconv.Atoi(bodyBytesSent)
 		if err == nil {
 			filters["body_bytes_sent"] = bodyBytesSentInt
 		}
 	}
-	// Check if the query parameter for HTTP referer exists and add it to filters.
 	if httpReferer := r.URL.Query().Get("http_referer"); httpReferer != "" {
 		filters["http_referer"] = httpReferer
 	}
-	// Check if the query parameter for HTTP user agent exists and add it to filters.
 	if httpUserAgent := r.URL.Query().Get("http_user_agent"); httpUserAgent != "" {
 		filters["http_user_agent"] = httpUserAgent
 	}
-	// Check if the query parameter for HTTP X-Forwarded-For exists and add it to filters.
 	if httpXForwardedFor := r.URL.Query().Get("http_x_forwarded_for"); httpXForwardedFor != "" {
 		filters["http_x_forwarded_for"] = httpXForwardedFor
 	}
 
-	// Return the map of filters.
 	return filters
 }
 
@@ -69,21 +58,21 @@ func GenerateFiltersMap(r *http.Request) map[string]interface{} {
 // Returns:
 //   - Pagination model containing the page and limit.
 func GetPaginationParams(r *http.Request) models.Pagination {
-	// Initialize default pagination with page 1 and limit 10.
-	cursorTime := time.Now().Add(-24 * time.Hour) 
 	pagination := models.Pagination{
 		Limit: 10,
-		Cursor: &cursorTime,
-		Page: 1,
+		Cursor: nil,
+		CursorID: nil,
 	}
 
 	// Parse the "page" parameter if it exists and is a valid positive integer.
+	/*
 	if p := r.URL.Query().Get("page"); p != "" {
 		pageInt, err := strconv.Atoi(p)
 		if err == nil && pageInt > 0 {
 			pagination.Page = pageInt
 		}
 	}
+		*/
 
 	if l := r.URL.Query().Get("limit"); l != "" {
 		limitInt, err := strconv.Atoi(l)
@@ -94,17 +83,24 @@ func GetPaginationParams(r *http.Request) models.Pagination {
 		}
 	}
 
+	if l := r.URL.Query().Get("id"); l != "" {
+		id, err := strconv.Atoi(l)
+		if err == nil && id > 0  {
+			pagination.CursorID = &id
+		} else {
+			logger.LogInfo(fmt.Sprintf("Invalid or out-of-range 'id' parameter: %v.", l))
+		}
+	}
+
 	// Parse "cursor" query parameter if it exists.
 	if cursor := r.URL.Query().Get("cursor"); cursor != "" {
 		cursorTime, err := parseDateOrDateTime(cursor)
 		if err == nil {
 			pagination.Cursor = &cursorTime
 		} else {
-			logger.LogWarn(fmt.Sprintf("Invalid 'cursor' parameter: %v. Defaulting to the last valid cursor time.", cursor))
+			logger.LogWarn(fmt.Sprintf("Invalid 'cursor' parameter: %v.", cursor))
 		}
 	}
-
-	
 
 	return pagination
 }

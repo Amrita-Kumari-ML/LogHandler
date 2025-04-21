@@ -66,8 +66,7 @@ func GenerateLog() string {
 //   ctx := context.Background()
 //   logGen := Generator{}
 //   logGen.GenerateLogsConcurrently(ctx, 10000, 1*time.Minute, &wg)
-func (l *Generator) GenerateLogsConcurrently(ctx context.Context, numLogs int, duration time.Duration,counter *sync.WaitGroup) {
-	
+func (l *Generator) GenerateLogsConcurrently(ctx context.Context, numLogs int, duration time.Duration,counter *sync.WaitGroup, statusChan chan<- string) {
 	logs := make([]string, numLogs)
 
 	numCPU := runtime.NumCPU()
@@ -126,7 +125,7 @@ func (l *Generator) GenerateLogsConcurrently(ctx context.Context, numLogs int, d
 
 					if totalBatchSize+logSize > maxBatchSizeBytes {
 						logger.LogDebug(fmt.Sprintf("Batch byte size is more:%v", totalBatchSize+logSize))
-						go SendLogToProcessor(batch)
+						go SendLogToProcessor(batch, statusChan)
 
 						batch = []string{}
 						totalBatchSize = 0
@@ -137,14 +136,14 @@ func (l *Generator) GenerateLogsConcurrently(ctx context.Context, numLogs int, d
 
 					if len(batch) >= 100 {
 						logger.LogDebug(fmt.Sprintf("Batch size is more:%v", len(batch)))
-						go SendLogToProcessor(batch)
+						go SendLogToProcessor(batch, statusChan)
 						batch = []string{}
 						totalBatchSize = 0
 					}
 				}
 			}
 			if len(batch) > 0 {
-				go SendLogToProcessor(batch)
+				go SendLogToProcessor(batch, statusChan)
 			}
 		}(worker_i)
 	}

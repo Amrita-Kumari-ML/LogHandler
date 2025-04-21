@@ -9,16 +9,16 @@ package models
 //     the total number of logs that should be produced during the specified time period.
 //     Example: `1000` logs.
 //
-//   - Unit: The time unit (in seconds) over which the logs should be generated. It specifies 
-//     the duration for log generation. This field represents the length of time for which 
+//   - Unit: The time unit (in seconds, minute, or hour) over which the logs should be generated. It specifies 
+//     the duration for log generation. This field represents the length of unit of time for which 
 //     the `NumLogs` should be distributed for generation.
-//     Example: `"60"` (i.e., generate `NumLogs` logs over 60 seconds).
+//     Example: `"s"` (i.e., generate `NumLogs` logs over 60 seconds).
 //
 // Example usage:
 //   // Example of a RequestPayload struct in a log generation request
 //   requestPayload := models.RequestPayload{
 //       NumLogs: 1000,
-//       Unit: "60", // Generate 1000 logs over 60 seconds
+//       Unit: "s", // Generate 1000 logs over 60 seconds
 //   }
 type RequestPayload struct{
 	// NumLogs defines the total number of logs that should be generated.

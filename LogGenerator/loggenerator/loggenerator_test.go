@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+
 // TestGenerateLog tests the GenerateLog function
 func TestGenerateLog(t *testing.T) {
 	// Seed the random generator with a fixed value for deterministic output
@@ -58,11 +59,11 @@ func TestGenerateLogsConcurrently(t *testing.T) {
 
 	// Create a context for cancellation
 	ctx, cancel := context.WithCancel(context.Background())
-
+	statusChan := make(chan string)
 	// Call the method concurrently
 	go func() {
 		generator := &Generator{}
-		generator.GenerateLogsConcurrently(ctx, numLogs, duration, &counter)
+		generator.GenerateLogsConcurrently(ctx, numLogs, duration, &counter, statusChan)
 	}()
 
 	// Simulate a small delay to allow the goroutines to start
@@ -103,9 +104,9 @@ func TestSendLogToProcessor(t *testing.T) {
 
 	// Sample log data
 	logs := []string{"log1", "log2"}
-
+	statusChan := make(chan string)
 	// Call the function
-	SendLogToProcessor(logs)
+	SendLogToProcessor(logs, statusChan)
 
 	logJson, err := json.Marshal(logs)
 	assert.NoError(t, err)
@@ -139,9 +140,9 @@ func TestSendLogToProcessor_Error(t *testing.T) {
 
 	// Sample log data
 	logs := []string{"log1", "log2"}
-
+	statusChan := make(chan string)
 	// Call the function
-	SendLogToProcessor(logs)
+	SendLogToProcessor(logs, statusChan)
 
 	// Verify that the logger methods were called appropriately
 	//mockLogger.AssertExpectations(t)
@@ -156,12 +157,12 @@ func TestSendLogToProcessor_MarshallingError(t *testing.T) {
 	// For example, you could create a circular reference in the logs that causes json.Marshal to fail
 
 	// Call the function with problematic log data (e.g., non-serializable data)
-	logs := []string{}// Invalid type for JSON marshalling
+	logs := []string{}
 
 	// Capture log output using mock logger
-	
+	statusChan := make(chan string)
 	// Call the function
-	SendLogToProcessor(logs)
+	SendLogToProcessor(logs, statusChan)
 
 	// Verify that the marshalling error was logged
 	//mockLogger.LogError.AssertCalled(t, mock.Anything)

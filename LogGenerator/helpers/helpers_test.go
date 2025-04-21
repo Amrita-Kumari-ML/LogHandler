@@ -34,17 +34,13 @@ func (m *MockServer) StopServer() {
 }
 
 func TestSetUp(t *testing.T) {
-    // Create the mocks
     mockConfig := new(MockConfiguration)
     mockServer := new(MockServer)
 
-
-    // Set up the expected behavior for the mock methods
     mockConfig.On("RefreshServer").Return(nil) // Simulate no error during server refresh
     mockServer.On("StartServer").Return()      // Simulate the StartServer method being called
     mockServer.On("StopServer").Return()       // Simulate the StopServer method being called
 
-    // Set up the channel for simulating the signal
     sigs := make(chan os.Signal, 1)
     done := make(chan bool, 1)
     go func() {
@@ -53,17 +49,14 @@ func TestSetUp(t *testing.T) {
 
 	a := &Application{Server: &Servers{},Configuration: &Configs{},}
 
-    // Start the SetUp method
     go func() {
         err := a.SetUp()
 		exp := fmt.Errorf("error loading configuration: error loading config from YAML: failed to read config.yaml: open config.yaml: no such file or directory")
         assert.Equal(t,exp, err) // Ensure no error occurs during SetUp
     }()
 
-    // Simulate signal handling by sending a signal
     sigs <- syscall.SIGINT
 
-    // Wait for the signal handler to finish
     select {
     case <-done:
         mockConfig.AssertExpectations(t)

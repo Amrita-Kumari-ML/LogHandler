@@ -19,19 +19,11 @@ import (
 //   main()
 func main() {
 	logger.InitializeLogger("debug")
-
 	logger.LogInfo("Starting Log Generator service...")
 	
-	// Initialize a configuration object to handle application settings.
-	// This will load configuration data for the application.
 	conf := &helpers.Configs{}
-
-	// Initialize the server object to handle the server setup and logic.
-	// This will manage the server's lifecycle, including starting and stopping the server.
 	server := &helpers.Servers{}
-
-	// Create a new application instance with the server and configuration objects.
-	// The NewApplication function will wire together the server and configuration.
+	
 	app := helpers.NewApplication(server, conf)
 
 	// Call SetUp() to set up the application.
@@ -45,6 +37,7 @@ func main() {
 
 	// Log a message indicating that the service has been stopped.
 	// This indicates that the server has either been shut down or encountered an issue.
+	// It indicates graceful shut down and indicating the logger message to indicate the end of the service.
 	logger.LogInfo("Log Generator Service stoped.")
 }
 

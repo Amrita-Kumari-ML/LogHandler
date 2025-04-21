@@ -30,11 +30,16 @@ import (
 // Example usage:
 //   logs := []string{"log1", "log2", "log3"}
 //   SendLogToProcessor(logs)
-func SendLogToProcessor(logs []string) {
+func SendLogToProcessor(logs []string, statusChan chan<- string) {
 	logger.LogDebug("Send log is called!")
 	logJson, err := json.Marshal(logs)
 	if err != nil {
-		logger.LogError(fmt.Sprintf("Error marshalling log data: %v", err))
+		msg :=fmt.Sprintf("Error marshalling log data: %v", err) 
+		logger.LogError(msg)
+		select {
+		case statusChan <- msg:
+		default:
+		}
 		return
 	}
 
@@ -44,14 +49,29 @@ func SendLogToProcessor(logs []string) {
 
 	resp, err := client.Post(utils.GloablMetaData.ProcessorApi, "application/json", bytes.NewBuffer(logJson))
 	if err != nil {
-		//log.Println("Log processor error : ",err)
+		msg := fmt.Sprintf("Error sending logs to processor: %v", err)
+		logger.LogError(msg)
+		select {
+		case statusChan <- msg:
+		default:
+		}
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		logger.LogInfo("Logs successfully sent to LogParser")
+		msg := "Logs successfully sent to LogParser"
+		logger.LogInfo(msg)
+		select {
+		case statusChan <-msg:
+		default:
+		}
 	} else {
-		logger.LogWarn(fmt.Sprintf("Failed to send logs to LogParser. Status Code: %d", resp.StatusCode))
+		msg := fmt.Sprintf("Failed to send logs. Status: %d", resp.StatusCode)
+		logger.LogWarn(msg)
+		select {
+		case statusChan <- msg:
+		default:
+		}
 	}
 }

@@ -29,7 +29,7 @@ type ServerHandler struct {
 }
 
 var cancelFunc context.CancelFunc
-var mu sync.Mutex // To safely access the cancelFunc in a concurrent environment
+var mu sync.Mutex 
 
 // IsAlive handles the "GET /alive" endpoint to check if the server is live.
 // It responds with an HTTP status code 200 and a message indicating the server's health status.
@@ -67,7 +67,6 @@ func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 	response := s.ResponseW
 	logger.LogDebug("\n Log generation is called!")
 
-	// Default values for rate and unit
 	var rate int
 	var unitStr string
 
@@ -79,7 +78,6 @@ func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&rateModel)
 	if err != nil {
-		// Use default values from the config
 		rate = int(utils.RateData.NumLogs)
 		unitStr = utils.RateData.Unit
 
@@ -96,7 +94,6 @@ func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 		unitStr = rateModel.Unit
 	}
 
-	// Validate unit and set duration
 	var duration time.Duration
 	switch unitStr {
 	case "s":
@@ -110,20 +107,24 @@ func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Respond immediately with "Task is in progress"
-	response.SendResponse(w, http.StatusOK, true, "Task is in progress...", nil)
-	logger.LogInfo("Response generated to indicate task is in progress")
-
-	// Cancel the previous task if it exists
+	statusChan := make(chan string, 1) // Buffered so it doesn't block
 	mu.Lock()
 	if cancelFunc != nil {
-		cancelFunc() // Cancel the previous task
+		cancelFunc() 
 		logger.LogWarn("Previous task canceled.")
 	}
 	mu.Unlock()
 
-	// Start the background task after responding
-	go s.startLogGenerationTask(rate, unitStr, duration)
+	go s.startLogGenerationTask(rate, unitStr, duration, statusChan)
+
+	select {
+	case statusMsg := <-statusChan:
+		response.SendResponse(w, http.StatusOK, true, statusMsg, nil)
+		logger.LogInfo("Response generated to indicate task is in progress")
+	case <-time.After(3 * time.Second):
+		response.SendResponse(w, http.StatusRequestTimeout, false, "No status received in time", nil)
+		logger.LogWarn("No status received in time")
+	}
 }
 
 // startLogGenerationTask starts the log generation task in the background.
@@ -135,8 +136,7 @@ func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 //   - duration: The duration between each log generation task. It is calculated based on the unit provided.
 //
 // It starts a background task to generate logs and cancels the previous task if it's still running.
-func (s *ServerHandler) startLogGenerationTask(rate int, unitStr string, duration time.Duration) {
-	// Create a new context for the current task
+func (s *ServerHandler) startLogGenerationTask(rate int, unitStr string, duration time.Duration, statusChan chan<- string) {
 	cntx, cancel := context.WithCancel(context.Background())
 	mu.Lock()
 	cancelFunc = cancel
@@ -144,14 +144,21 @@ func (s *ServerHandler) startLogGenerationTask(rate int, unitStr string, duratio
 
 	var wg sync.WaitGroup
 	ticker := time.NewTicker(duration)
-
-	// Start the log generation task in a goroutine
-	go s.LogGen.GenerateLogsConcurrently(cntx, rate, duration, &wg)
+	if rate <= 0 {
+		msg := fmt.Sprintf("numLogs is zero or negative, skipping the generate")
+		logger.LogError(msg)
+		select {
+		case statusChan <- msg:
+		default:
+		}
+		cntx.Done()
+		return
+	}
+	go s.LogGen.GenerateLogsConcurrently(cntx, rate, duration, &wg, statusChan)
 
 	for {
 		select {
 		case <-ticker.C:
-			// Cancel the previous task and start a new one
 			mu.Lock()
 			if cancelFunc != nil {
 				cancelFunc()
@@ -161,10 +168,9 @@ func (s *ServerHandler) startLogGenerationTask(rate int, unitStr string, duratio
 			mu.Unlock()
 
 			wg.Add(1)
-			go s.LogGen.GenerateLogsConcurrently(cntx, rate, duration, &wg)
+			go s.LogGen.GenerateLogsConcurrently(cntx, rate, duration, &wg, statusChan)
 
 		case <-cntx.Done():
-			// Task was externally stopped (e.g., by cancelFunc)
 			logger.LogWarn("Stopped externally")
 			return
 		}

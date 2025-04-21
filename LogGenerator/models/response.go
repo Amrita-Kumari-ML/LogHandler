@@ -37,17 +37,7 @@ import (
 //       Data:    nil,
 //   }
 type Response struct {
-	// Status indicates whether the operation was successful or not.
-	// - `true` means success
-	// - `false` means failure
 	Status bool `json:"status"`
-
-	// Message provides a textual description of the response.
-	// It could be a success message or an error message depending on the operation's outcome.
 	Message string `json:"message"`
-
-	// Data holds the actual data associated with the response, encoded as JSON.
-	// It is represented as `json.RawMessage` to allow flexibility in handling different types of data.
-	// It could be the result of an operation or `null` if no data is provided.
 	Data json.RawMessage `json:"data"`
 }

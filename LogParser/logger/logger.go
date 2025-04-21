@@ -10,7 +10,7 @@ var Log *logrus.Logger
 
 // InitializeLogger initializes the logrus logger with necessary configurations
 // It can be called once at the start of your application
-func InitializeLogger(logLevel string) *logrus.Logger{
+func InitLogger(logLevel string) *logrus.Logger{
 	// Create a new instance of the logger
 	Log = logrus.New()
 

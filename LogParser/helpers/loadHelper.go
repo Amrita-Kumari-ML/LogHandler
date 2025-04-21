@@ -95,7 +95,7 @@ func (url *EndPointHandler) MapHandler(handlerName string) http.HandlerFunc{
 // stopServer gracefully shuts down the server when a termination signal is received.
 func (s *Servers) stopServer() error{
 	// Wait for a signal (e.g., SIGINT or SIGTERM) to stop the server.
-	<-done
+	<-Done
 	fmt.Println("Server Stopped......")
 	os.Exit(1)
 	return nil
@@ -108,24 +108,25 @@ type Configs struct{}
 // refreshServer refreshes the configuration of the server by reloading the environment 
 // variables and reloading the database configuration (through the connection package).
 func (c *Configs) refreshServer() error {
-	// Load configuration settings (e.g., from environment variables or config files).
 	if err := utils.FirstLoad(); err != nil {
 		return fmt.Errorf("error loading configuration: %v", err)
 	}
 
-	// Reload the database configuration.
+	db := connection.InitDB()
+	if db == nil {
+		logger.LogDebug("Database not configured!")
+	}
+	
 	if err := connection.FirstLoad(); err != nil {
 		return fmt.Errorf("error loading Database configuration: %v", err)
 	}
 
-	// Log the updated configuration data (for debugging and verification).
 	fmt.Println(utils.ConfigData)
 	logger.LogDebug("Configuration Updated!")
 	return nil
 }
 
 // RefreshConfigura refreshes the server's configuration at regular intervals using a ticker.
-// The ticker triggers configuration refresh every `t` duration.
 func RefreshConfigura(configs ConfigurationLoader, t time.Duration){
 	// Create a ticker to trigger configuration refresh at regular intervals.
 	ticker := time.NewTicker(1 * t)
@@ -142,14 +143,12 @@ func RefreshConfigura(configs ConfigurationLoader, t time.Duration){
 }
 
 // Application struct encapsulates the server and configuration loader, managing the application's 
-// lifecycle, including starting the server, refreshing configurations, and handling graceful shutdowns.
 type Application struct{
 	server       ServerLoader     // ServerLoader interface instance to manage server lifecycle.
 	configuration ConfigurationLoader // ConfigurationLoader interface instance to manage configuration updates.
 }
 
 // NewApplication creates a new Application instance, initializing it with the provided ServerLoader 
-// and ConfigurationLoader implementations.
 func NewApplication(servers ServerLoader, configs ConfigurationLoader) *Application{
 	return &Application{
 		server:       servers,
@@ -158,36 +157,28 @@ func NewApplication(servers ServerLoader, configs ConfigurationLoader) *Applicat
 }
 
 // done channel is used to signal the termination of the server when a shutdown signal is received.
-var done chan bool
+var Done chan bool
 
-// SetUp initializes and sets up the application. It starts the server, begins periodic configuration 
-// refreshes, and listens for termination signals to gracefully stop the server.
+// SetUp initializes and sets up the application. It starts the server, begins periodic config refresh 
 func (app *Application) SetUp() error{
-	// Create a channel to capture OS signals (e.g., SIGINT, SIGTERM).
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	Done = make(chan bool, 1)
 
-	// Create a channel for notifying when the server should stop.
-	done = make(chan bool, 1)
-
-	// Goroutine to listen for termination signals (e.g., SIGINT or SIGTERM).
 	go func() {
 		sig := <-sigs
 		fmt.Println()
 		fmt.Println(sig)
-		done <- true
+		Done <- true
 	}()
 
-	// Refresh the server configuration at startup.
 	if err := app.configuration.refreshServer(); err != nil {
 		//log.SetFlags(log.LstdFlags | log.Lshortfile)
     	logger.LogError(err)
 		return nil
 	}
 
-	// Start refreshing the configuration periodically.
 	go RefreshConfigura(app.configuration, time.Minute)
-	// Start the server and listen for incoming requests.
 	go app.server.stopServer()
 	app.server.startServer()
 

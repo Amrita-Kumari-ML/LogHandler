@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 )
+//select * from ( SELECT * FROM patients order by patient_id DESC LImit 10) as last10 order by patient_id ASC;
+
 
 // GenerateFilteredGetQuery generates a SQL query to fetch filtered logs from the database
 // based on provided filters, pagination, and date range.
@@ -21,18 +23,16 @@ import (
 //   - A slice of interface{} containing the values to be bound to the prepared statement.
 func GenerateFilteredGetQuery(filters map[string]interface{}, paginationFilter models.Pagination, dateFilter models.TimeFilter) (string, []interface{}) {
 	// Base query string to fetch logs
-	baseQuery := "SELECT remote_addr, remote_user, time_local, request, status, body_bytes_sent, http_referer, http_user_agent, http_x_forwarded_for FROM logs WHERE 1=1"
+	baseQuery := "SELECT id, remote_addr, remote_user, time_local, request, status, body_bytes_sent, http_referer, http_user_agent, http_x_forwarded_for FROM logs WHERE 1=1"
 	var args []interface{}
 	argIndex := 1
 
-	// Add filters to the query
 	for key, value := range filters {
 		baseQuery += fmt.Sprintf(" AND %s = $%d", key, argIndex)
 		args = append(args, value)
 		argIndex++
 	}
 
-	// Add date range filters to the query
 	if dateFilter.Start_time != nil {
 		startTime := dateFilter.Start_time.UTC().Format(time.RFC3339)
 		fmt.Println("Start:",startTime)
@@ -40,6 +40,7 @@ func GenerateFilteredGetQuery(filters map[string]interface{}, paginationFilter m
 		args = append(args, startTime)
 		argIndex++
 	}
+
 	if dateFilter.End_time != nil {
 		endTime := dateFilter.End_time.UTC().Format(time.RFC3339)
 		fmt.Println("End:",endTime)
@@ -48,6 +49,22 @@ func GenerateFilteredGetQuery(filters map[string]interface{}, paginationFilter m
 		argIndex++
 	}
 
+	if paginationFilter.Cursor != nil && paginationFilter.CursorID != nil {
+		baseQuery += fmt.Sprintf(` AND (
+			time_local < $%d OR (time_local = $%d AND id < $%d)
+		)`, argIndex, argIndex, argIndex+1)
+		
+		args = append(args, paginationFilter.Cursor.UTC().Format(time.RFC3339), paginationFilter.CursorID)
+		argIndex += 2
+	}
+
+	baseQuery += " ORDER BY time_local DESC, id DESC"
+	baseQuery += fmt.Sprintf(" LIMIT $%d", argIndex)
+	args = append(args, paginationFilter.Limit)
+
+	return baseQuery, args
+
+/*
 	if paginationFilter.Cursor != nil {
 		baseQuery += fmt.Sprintf(" AND time_local > $%d", argIndex)
 		fmt.Println("Cursor:",paginationFilter.Cursor.UTC().Format(time.RFC3339))
@@ -63,8 +80,8 @@ func GenerateFilteredGetQuery(filters map[string]interface{}, paginationFilter m
 	//offset := (paginationFilter.Page - 1) * paginationFilter.Limit
 	//baseQuery += fmt.Sprintf(" LIMIT %d OFFSET %d", paginationFilter.Limit, offset)
 
-	// Return the query and the parameters
 	return baseQuery, args
+	*/
 }
 
 // GenerateFilteredCountQuery generates a SQL query to count the number of filtered logs based on 

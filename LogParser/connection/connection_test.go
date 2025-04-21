@@ -12,7 +12,7 @@ import (
 )
 
 func init(){
-	logger.InitializeLogger("info")
+	logger.InitLogger("info")
 }
 
 // Mock YAML content to test YAML loading

@@ -62,8 +62,5 @@ type LogGenerator interface {
 	//
 	//   // Start generating logs concurrently with a rate of 10 logs per second for 5 minutes
 	//   logGen.GenerateLogsConcurrently(ctx, 10, 5*time.Minute, &wg)
-	//
-	//   // Wait for all log generation tasks to complete
-	//   wg.Wait()
-	GenerateLogsConcurrently(ctx context.Context, rate int, duration time.Duration, wg *sync.WaitGroup)
+	GenerateLogsConcurrently(ctx context.Context, rate int, duration time.Duration, wg *sync.WaitGroup, statusChan chan<- string)
 }

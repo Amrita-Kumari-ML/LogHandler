@@ -1,7 +1,7 @@
 loggenerate:
   image:
     repository: loggenerate
-    tag: latest
+    tag: 1.0.1 #latest
     pullPolicy: IfNotPresent
   port: 8081
   env:
@@ -16,7 +16,7 @@ loggenerate:
 logparser:
   image:
     repository: logparser
-    tag: latest
+    tag: 1.0.1 #latest
     pullPolicy: IfNotPresent
   port: 8082
   env:
@@ -53,6 +53,7 @@ ingress:
   annotations: {}
   hosts: []
   tls: []
+  
 autoscaling:
   enabled: false
   minReplicas: 1

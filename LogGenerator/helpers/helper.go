@@ -15,16 +15,11 @@ import (
 	"time"
 )
 
-// Servers struct handles server-related operations like starting and stopping the server.
+// Servers struct responsible for start and stop of the server
 type Servers struct{}
 
-// startServer starts the log generator HTTP server and listens for incoming requests on the configured port.
-//
-// The function sets up HTTP handlers for different endpoints like "IsAlive" and "GenerateUrl".
-// These handlers define the behavior for specific URLs that clients can hit to interact with the server.
-//
-// It starts an HTTP server on the configured port, and if the server fails to start, it logs the error and exits the application.
-//
+// StartServer is responsible for starting the server where it has listen and serve
+// and the handlers are also aattached to handle the api end point 
 // Example usage:
 //   // Initialize and start the server
 //   server := &Servers{}
@@ -47,29 +42,22 @@ func (s *Servers) StartServer() error{
 	return nil
 }
 
-// stopServer stops the HTTP server gracefully. It listens for signals to shut down the server.
-//
-// The function waits for the "done" channel to receive a signal, indicating that the server should stop.
-//
+// StopServer stops the HTTP server gracefully. It listens for signals to shut down the server.
 // Example usage:
 //   // Initialize and stop the server
 //   server := &Servers{}
 //   server.stopServer()
 func (s *Servers) StopServer() error{
-	//server stop logic
 	<-done
 	logger.LogInfo("Server Stopped......")
 	os.Exit(1)
 	return nil
 }
 
-// Configs struct handles the configuration-related operations, like refreshing the configuration periodically.
+// Configs struct is reponsible for handling the refresh of the config data
 type Configs struct{}
 
-// refreshServer refreshes the server's configuration. It loads the configuration settings anew from the source (e.g., YAML file or environment variables).
-//
-// If there is an error loading the configuration, it returns an error message.
-//
+// RefreshServer refreshes the server's configuration. It loads the config data.
 // Example usage:
 //   // Initialize and refresh the server configuration
 //   configs := &Configs{}
@@ -82,11 +70,7 @@ func (c *Configs) RefreshServer() error{
 	return nil
 }
 
-// RefreshConfigura refreshes the server configuration at regular intervals (every "t" duration).
-//
-// The function sets up a ticker that triggers every "t" duration and calls the refreshServer method
-// to reload the configuration periodically. This ensures that the application is always using the latest configuration.
-//
+// RefreshConfigura calls the Refresh server periodically to refresh for the configuration
 // Example usage:
 //   // Initialize configuration and refresh it every 1 minute.
 //   configs := &Configs{}
@@ -96,23 +80,19 @@ func RefreshConfigura(configs interfaces.ConfigurationLoader, t time.Duration){
 	defer ticker.Stop()
 
 	for range ticker.C {
-		//log.SetFlags(log.LstdFlags | log.Lshortfile)
 		if err := configs.RefreshServer(); err != nil{
 			logger.LogError(err)
 		}
 	}
 }
 
-// Application struct combines server and configuration functionalities to initialize and run the application.
+// Application stuct is used to bind the config and server structs together
 type Application struct{
 	Server interfaces.ServerLoader
 	Configuration interfaces.ConfigurationLoader
 }
 
 // NewApplication creates a new Application instance with the given server and configuration loaders.
-//
-// The function returns a pointer to the created Application object, which will be used to start the server and handle configuration updates.
-//
 // Example usage:
 //   // Create a new application with server and configuration loaders
 //   app := NewApplication(&Servers{}, &Configs{})
@@ -123,6 +103,8 @@ func NewApplication(servers interfaces.ServerLoader, configs interfaces.Configur
 		Configuration: configs,
 	}
 }
+
+//done is the channel used to carry the stop signal of program shutdown 
 var done chan bool
 
 // SetUp sets up the application environment, loading the configuration and starting the server.
@@ -138,7 +120,6 @@ var done chan bool
 //   app := NewApplication(&Servers{}, &Configs{})
 //   app.SetUp()
 func (app *Application) SetUp() error{
-//todo updatye
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	done = make(chan bool, 1)
@@ -150,7 +131,6 @@ func (app *Application) SetUp() error{
 	}()
 	
 	if err := app.Configuration.RefreshServer(); err != nil {
-		//log.SetFlags(log.LstdFlags | log.Lshortfile)
     	logger.LogError(err)
 		return err
 	}
