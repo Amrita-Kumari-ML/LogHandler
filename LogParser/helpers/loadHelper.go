@@ -52,7 +52,23 @@ func (s *Servers) startServer() error{
 	http.HandleFunc(utils.PARSER_ALIVE_URL, handlers.IsAlive)            // Handler for /alive
 	http.HandleFunc(utils.PARSER_MAIN_URL, handlers.HandleType)          // Handler for /parse
 	http.HandleFunc(utils.PARSER_GET_COUNT_URL, handlers.GetLogsCountHandler) // Handler for /logs/count
-	
+
+	// Statistics endpoints
+	http.HandleFunc("/stats/status", handlers.GetStatusStatsHandler)     // Handler for /stats/status
+	http.HandleFunc("/stats/ip", handlers.GetIPStatsHandler)             // Handler for /stats/ip
+	http.HandleFunc("/stats/time", handlers.GetTimeStatsHandler)         // Handler for /stats/time
+	http.HandleFunc("/stats/dashboard", handlers.GetDashboardStatsHandler) // Handler for /stats/dashboard
+
+	// ML/AI endpoints
+	http.HandleFunc("/ml/insights", handlers.GetMLInsightsHandler)       // Handler for comprehensive ML insights
+	http.HandleFunc("/ml/anomalies", handlers.GetAnomalyDetectionHandler) // Handler for anomaly detection
+	http.HandleFunc("/ml/predictions", handlers.GetPredictionsHandler)   // Handler for traffic predictions
+	http.HandleFunc("/ml/security", handlers.GetSecurityThreatsHandler)  // Handler for security threat analysis
+	http.HandleFunc("/ml/clusters", handlers.GetUserClustersHandler)     // Handler for user behavior clustering
+	http.HandleFunc("/ml/realtime-anomaly", handlers.GetRealTimeAnomalyHandler) // Handler for real-time anomaly detection
+	http.HandleFunc("/ml/config", handlers.GetMLConfigHandler)           // Handler for ML configuration
+	http.HandleFunc("/ml/config/update", handlers.UpdateMLConfigHandler) // Handler for updating ML configuration
+
 	fmt.Println("Current Configuration Data:", utils.ConfigData)
 	
 	// Start the HTTP server and listen on the configured port.
@@ -176,6 +192,14 @@ func (app *Application) SetUp() error{
 		//log.SetFlags(log.LstdFlags | log.Lshortfile)
     	logger.LogError(err)
 		return nil
+	}
+
+	// Initialize ML service
+	if err := handlers.InitializeMLService(); err != nil {
+		logger.LogWarn(fmt.Sprintf("ML service initialization failed: %v", err))
+		// Continue without ML features
+	} else {
+		logger.LogInfo("ML service initialized successfully")
 	}
 
 	go RefreshConfigura(app.configuration, time.Minute)

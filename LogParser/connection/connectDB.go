@@ -14,7 +14,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var DB *sql.DB            
+var DB *sql.DB
 var Config *models.DB_Config
 
 // InitDB initializes the database connection using the configuration data.
@@ -43,15 +43,16 @@ func InitDB() *sql.DB {
 	)
 
 	// Open the database connection
-	DB, err = connectWithRetry(connStr,10)
+	DB, err = connectWithRetry(connStr, 10)
 	if err != nil {
 		logger.LogError(fmt.Sprintf("Error connecting to the database: %v\n", err))
 	}
 
 	// Check if the connection to the database is successful
-	if _, ok := PingDB(); ok != nil{
-		logger.LogError(fmt.Sprintf("Database ping failed after connection:%v.\nExiting...", ok))
-		return ok
+	success, _ := PingDB()
+	if !success {
+		logger.LogError("Database ping failed after connection. Exiting...")
+		return nil
 	}
 
 	// Ensure the logs table exists, if not, create it
@@ -64,12 +65,21 @@ func connectWithRetry(connStr string, maxAttempts int) (*sql.DB, error) {
 	var err error
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		// Open does not establish connections immediately, Ping will.
 		db, err = sql.Open(utils.DB_USERNAME, connStr)
 		if err == nil {
+			// Try to ping to actually establish a connection
 			if pingErr := db.Ping(); pingErr == nil {
+				// Configure sane connection pool limits
+				db.SetMaxOpenConns(10)
+				db.SetMaxIdleConns(5)
+				db.SetConnMaxLifetime(5 * time.Minute)
+
 				logger.LogInfo(fmt.Sprintf("Successfully connected to the database on attempt %d", attempt))
 				return db, nil
 			} else {
+				// Ensure we close the handle on failed ping to avoid leaking connections
+				_ = db.Close()
 				err = pingErr
 			}
 		}
@@ -126,16 +136,14 @@ func createLogsTableIfNotExist(config models.DB_Config) {
 }
 
 func indexExists(indexName string) bool {
-    var index string
-    err := DB.QueryRow(`SELECT indexname FROM pg_indexes WHERE indexname = $1`, indexName).Scan(&index)
-    if err == sql.ErrNoRows {
-        // Index does not exist
-        return false
-    } else if err != nil {
-        logger.LogDebug(fmt.Sprintf("Error checking if index exists: %v\n", err))
-    }
-    // Index exists
-    return true
+	var index string
+	err := DB.QueryRow(`SELECT indexname FROM pg_indexes WHERE indexname = $1`, indexName).Scan(&index)
+	if err == sql.ErrNoRows {
+		// Index does not exist
+		return false
+	} else if err != nil {
+		logger.LogDebug(fmt.Sprintf("Error checking if index exists: %v\n", err))
+	}
+	// Index exists
+	return true
 }
-
-

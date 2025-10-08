@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Log Analytics Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --danger-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .dashboard-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-tabs {
+            border: none;
+            margin-bottom: 2rem;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            background: white;
+            margin-right: 0.5rem;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            color: #6c757d;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn-gradient {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            color: white;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .btn-success-gradient {
+            background: var(--success-gradient);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            color: white;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-success-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.4);
+            color: white;
+        }
+
+        .btn-danger-gradient {
+            background: var(--danger-gradient);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            color: white;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-danger-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(250, 112, 154, 0.4);
+            color: white;
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .ml-insights {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        .status-running { background-color: #28a745; }
+        .status-stopped { background-color: #dc3545; }
+        .status-idle { background-color: #ffc107; }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 1rem 0;
+            }
+            .control-panel, .stat-card, .chart-container {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        /* Ensure all four dashboard graphs have equal fixed size */
+        .fixed-graph { min-height: 360px; }
+        .fixed-graph canvas { height: 300px !important; }
+
+        /* ML analytics cards: square 1:1 */
+        .ml-card { aspect-ratio: 1 / 1; }
+        .ml-card canvas { width: 100% !important; height: 100% !important; }
+    </style>
+        <style>
+            /* Elegant, professional theming with light/dark modes */
+            [data-theme="light"] {
+                --bg: #f8fafc; /* slate-50 */
+                --text: #0f172a; /* slate-900 */
+                --muted: #475569; /* slate-600 */
+                --card-bg: #ffffff;
+                --card-border: rgba(2,6,23,0.06);
+                --shadow: 0 6px 24px rgba(2,6,23,0.06);
+                --accent: #2563eb;   /* blue-600 */
+                --accent-2: #7c3aed; /* violet-600 */
+            }
+
+            [data-theme="dark"] {
+                --bg-start: #0b1220; --bg-end: #0e172a;
+                --bg: linear-gradient(180deg, var(--bg-start), var(--bg-end));
+                --text: #e5e7eb; /* slate-200 */
+                --muted: #94a3b8; /* slate-400 */
+                --card-bg: rgba(255,255,255,0.04);
+                --card-border: rgba(148,163,184,0.16);
+                --shadow: 0 14px 40px rgba(0,0,0,0.35);
+                --accent: #60a5fa;   /* blue-400 */
+                --accent-2: #a78bfa; /* violet-400 */
+            }
+            html { background: var(--bg); }
+            body { background: var(--bg); color: var(--text); }
+            .text-muted { color: var(--muted) !important; }
+            .chart-container {
+                background: var(--card-bg);
+                border: 1px solid var(--card-border);
+                border-radius: 16px;
+                box-shadow: var(--shadow);
+                padding: 1rem 1.25rem;
+                backdrop-filter: saturate(160%) blur(6px);
+            }
+            .btn-gradient {
+                background: linear-gradient(90deg, var(--accent), var(--accent-2));
+                border: none;
+                color: white;
+            }
+            .btn-gradient:hover { filter: brightness(1.05); }
+            .live-badge { display: inline-flex; align-items: center; gap: 6px; }
+            .live-dot {
+                width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+                box-shadow: 0 0 0 0 rgba(34,197,94, 0.7);
+                animation: pulse 1.5s infinite;
+            }
+            @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 rgba(34,197,94, 0.7); }
+                70% { box-shadow: 0 0 0 8px rgba(34,197,94, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(34,197,94, 0); }
+            }
+
+        </style>
+
+        <div class="container mt-2">
+            <div class="d-flex justify-content-end align-items-center gap-2">
+                <label for="themeSelect" class="form-label mb-0 me-2">Theme</label>
+                <select id="themeSelect" class="form-select form-select-sm" style="max-width: 180px;">
+                    <option value="system" selected>System</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+        </div>
+
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="row">
+                <div class="col">
+                    <h1 class="text-center mb-0"><i class="fas fa-chart-line me-3"></i>Advanced Log Analytics Dashboard</h1>
+                    <p class="text-center mb-0">Real-time monitoring, generation control & ML insights</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-alert" class="alert alert-danger d-none" role="alert"></div>
+        <div id="success-alert" class="alert alert-success d-none" role="alert"></div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="generator-tab" data-bs-toggle="tab" data-bs-target="#generator" type="button" role="tab">
+                    <i class="fas fa-cogs me-2"></i>Log Generator
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab">
+                    <i class="fas fa-brain me-2"></i>ML Analytics
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">
+                    <i class="fas fa-list me-2"></i>Log Viewer
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="mainTabContent">
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                <!-- Control Panel -->
+                <div class="control-panel">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <h5 class="d-flex align-items-center justify-content-between"><span><i class="fas fa-sync-alt me-2"></i>Auto Refresh</span><span id="live-badge" class="badge bg-success live-badge d-none"><span class="live-dot"></span> Live</span></h5>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                                <label class="form-check-label" for="autoRefreshToggle">Enable</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="refreshInterval" class="form-label">Interval</label>
+                            <select class="form-select" id="refreshInterval">
+                                <option value="2">2 seconds</option>
+                                <option value="5" selected>5 seconds</option>
+                                <option value="10">10 seconds</option>
+                                <option value="30">30 seconds</option>
+                                <option value="60">1 minute</option>
+                                <option value="300">5 minutes</option>
+                                <option value="600">10 minutes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="timeFilter" class="form-label">Time Filter</label>
+                            <select class="form-select" id="timeFilter">
+                                <option value="all" selected>All Time</option>
+                                <option value="1h">Last Hour</option>
+                                <option value="6h">Last 6 Hours</option>
+                                <option value="24h">Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button id="refresh-btn" class="btn btn-gradient">
+                                    <i class="fas fa-sync-alt me-2"></i>
+                                    <span id="refresh-text">Refresh Now</span>
+                                    <span id="refresh-spinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card text-center fade-in">
+                            <i class="fas fa-file-alt fa-2x text-primary mb-3"></i>
+                            <h3 class="text-primary" id="total-logs">0</h3>
+                            <p class="mb-0">Total Logs</p>
+                            <small class="text-muted" id="logs-trend">+0% from last period</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card text-center fade-in">
+                            <i class="fas fa-network-wired fa-2x text-success mb-3"></i>
+                            <h3 class="text-success" id="unique-ips">0</h3>
+                            <p class="mb-0">Unique IPs</p>
+                            <small class="text-muted" id="ips-trend">+0% from last period</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card text-center fade-in">
+                            <i class="fas fa-weight fa-2x text-warning mb-3"></i>
+                            <h3 class="text-warning" id="avg-response-size">0</h3>
+                            <p class="mb-0">Avg Response Size</p>
+                            <small class="text-muted" id="size-trend">+0% from last period</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card text-center fade-in">
+                            <i class="fas fa-clock fa-2x text-info mb-3"></i>
+                            <h3 class="text-info" id="last-log-time">N/A</h3>
+                            <p class="mb-0">Last Log</p>
+                            <small class="text-muted" id="time-ago">Just now</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="chart-container fixed-graph">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>HTTP Status Codes Distribution</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary me-2" id="status-prev"><i class="fas fa-chevron-left"></i></button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="status-next"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+                            <canvas id="statusChart" style="height: 300px;"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="chart-container fixed-graph">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Requests by IP Address</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary me-2" id="ip-prev"><i class="fas fa-chevron-left"></i></button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="ip-next"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+                            <canvas id="ipChart" style="height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="chart-container fixed-graph">
+                            <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i>Average Response Size by Status Code</h5>
+                            <canvas id="avgBytesChart" style="height: 300px;"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="chart-container fixed-graph">
+                            <h5 class="mb-3"><i class="fas fa-chart-area me-2"></i>Logs Over Time</h5>
+                            <canvas id="timeChart" style="height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tables -->
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="chart-container">
+                            <h5 class="mb-3"><i class="fas fa-table me-2"></i>Top IP Addresses</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>IP Address</th>
+                                            <th>Requests</th>
+                                            <th>Avg Bytes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="top-ips-table">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="chart-container">
+                            <h5 class="mb-3"><i class="fas fa-table me-2"></i>Top Status Codes</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Status Code</th>
+                                            <th>Count</th>
+                                            <th>Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="top-status-table">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Generator Tab -->
+            <div class="tab-pane fade" id="generator" role="tabpanel">
+                <div class="control-panel">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4><i class="fas fa-cogs me-2"></i>Log Generation Control</h4>
+                            <p class="text-muted">Generate logs with custom parameters and control the generation process</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="d-flex align-items-center justify-content-end">
+                                <span class="status-indicator" id="generator-status"></span>
+                                <span id="generator-status-text">Idle</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="chart-container">
+                            <h5 class="mb-4"><i class="fas fa-play me-2"></i>Generate Logs</h5>
+                            <form id="log-generation-form">
+                                <div class="mb-3">
+                                    <label for="numLogs" class="form-label">Number of Logs per Interval</label>
+                                    <input type="number" class="form-control" id="numLogs" value="10" min="1" max="1000">
+                                    <div class="form-text">Number of logs to generate per time unit</div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="timeUnit" class="form-label">Time Unit</label>
+                                    <select class="form-select" id="timeUnit">
+                                        <option value="s" selected>Per Second</option>
+                                        <option value="m">Per Minute</option>
+                                        <option value="h">Per Hour</option>
+                                    </select>
+                                    <div class="form-text">Time interval for log generation</div>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-success-gradient" id="start-generation">
+                                        <i class="fas fa-play me-2"></i>Start Generation
+                                    </button>
+                                    <button type="button" class="btn btn-danger-gradient" id="stop-generation" disabled>
+                                        <i class="fas fa-stop me-2"></i>Stop Generation
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="chart-container">
+                            <h5 class="mb-4"><i class="fas fa-chart-line me-2"></i>Generation Statistics</h5>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <h4 class="text-primary" id="total-logs-count">0</h4>
+                                        <p class="mb-0">Total Logs in DB</p>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <h4 class="text-success" id="generation-rate-display">0/s</h4>
+                                        <p class="mb-0">Generation Rate</p>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <h4 class="text-info" id="generation-uptime">0s</h4>
+                                        <p class="mb-0">Running Time</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <div class="alert" id="generation-status-alert">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Status:</strong> <span id="generation-status">Ready to generate logs</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ML Analytics Tab -->
+            <div class="tab-pane fade" id="analytics" role="tabpanel">
+                <div class="ml-insights">
+                    <h4><i class="fas fa-brain me-2"></i>Machine Learning Insights</h4>
+                    <p class="mb-0">Advanced analytics powered by statistical algorithms and pattern recognition</p>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="chart-container ml-card">
+                            <h5 class="mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Anomaly Detection</h5>
+                            <div class="alert alert-warning" id="anomaly-alert">
+                                <strong>Status:</strong> <span id="anomaly-status">Monitoring...</span>
+                            </div>
+                            <canvas id="anomalyChart" style="height: 200px;"></canvas>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <strong>Algorithm:</strong> Z-Score based outlier detection<br>
+                                    <strong>Threshold:</strong> ±2 standard deviations
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="chart-container">
+                            <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i>Trend Analysis</h5>
+                            <div class="row text-center mb-3">
+                                <div class="col-6">
+                                    <h6 class="text-primary" id="trend-direction">↗️ Increasing</h6>
+                                    <small>Traffic Trend</small>
+                                </div>
+                                <div class="col-6">
+                                    <h6 class="text-success" id="trend-confidence">85%</h6>
+                                    <small>Confidence</small>
+                                </div>
+                            </div>
+                            <canvas id="trendChart" style="height: 200px;"></canvas>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <strong>Algorithm:</strong> Linear regression with moving averages<br>
+                                    <strong>Window:</strong> Last 100 data points
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="chart-container ml-card">
+                            <h5 class="mb-3"><i class="fas fa-users me-2"></i>User Behavior Clustering</h5>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Heavy Users</span>
+                                    <span class="badge bg-danger" id="heavy-users">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Regular Users</span>
+                                    <span class="badge bg-warning" id="regular-users">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Light Users</span>
+                                    <span class="badge bg-success" id="light-users">0</span>
+                                </div>
+                            </div>
+                            <canvas id="clusterChart" style="height: 200px;"></canvas>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <strong>Algorithm:</strong> K-means clustering (k=3)<br>
+                                    <strong>Features:</strong> Request frequency, response size
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="chart-container">
+                            <h5 class="mb-3"><i class="fas fa-shield-alt me-2"></i>Security Risk Assessment</h5>
+                            <div class="row text-center mb-3">
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <h5 class="text-danger" id="high-risk">0</h5>
+                                        <small>High Risk</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <h5 class="text-warning" id="medium-risk">0</h5>
+                                        <small>Medium Risk</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <h5 class="text-success" id="low-risk">0</h5>
+                                        <small>Low Risk</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <strong>Risk Factors:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>High 4xx/5xx error rates</li>
+                                    <li>Unusual request patterns</li>
+                                    <li>Suspicious IP behavior</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="chart-container ml-card">
+                            <h5 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Predictive Analytics</h5>
+                            <div class="mb-3">
+                                <h6>Next Hour Prediction</h6>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: 75%" id="prediction-confidence">
+                                        75% Confidence
+                                    </div>
+                                </div>
+                                <p class="mb-0">Expected logs: <strong id="predicted-logs">~1,250</strong></p>
+                            </div>
+                            <canvas id="predictionChart" style="height: 200px;"></canvas>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <strong>Algorithm:</strong> ARIMA time series forecasting<br>
+                                    <strong>Model:</strong> Auto-regressive integrated moving average
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Viewer Tab -->
+            <div class="tab-pane fade" id="logs" role="tabpanel">
+                <div class="control-panel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4><i class="fas fa-list me-2"></i>Log Viewer</h4>
+                            <p class="text-muted">Browse and filter log entries in real-time</p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-6">
+                                    <label for="logLimit" class="form-label">Show</label>
+                                    <select class="form-select" id="logLimit">
+                                        <option value="5" selected>5 logs</option>
+                                        <option value="10">10 logs</option>
+                                        <option value="25">25 logs</option>
+                                        <option value="50">50 logs</option>
+                                        <option value="100">100 logs</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label for="statusFilter" class="form-label">Status Filter</label>
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="all" selected>All Status</option>
+                                        <option value="200">200 - OK</option>
+                                        <option value="301">301 - Moved</option>
+                                        <option value="404">404 - Not Found</option>
+                                        <option value="500">500 - Error</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-table me-2"></i>Recent Log Entries</h5>
+                        <button class="btn btn-gradient btn-sm" id="refresh-logs">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>IP Address</th>
+                                    <th>Method</th>
+                                    <th>URL</th>
+                                    <th>Status</th>
+                                    <th>Size</th>
+                                    <th>User Agent</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-table">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Loading logs...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <small class="text-muted">
+                            Showing <span id="logs-count">0</span> entries
+                        </small>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" id="prev-page">Previous</a>
+                                </li>
+                                <li class="page-item active">
+                                    <a class="page-link" href="#" id="current-page">1</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="#" id="next-page">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="dashboard.js?v=20251007"></script>
+</body>
+</html>

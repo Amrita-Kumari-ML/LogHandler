@@ -6,7 +6,7 @@ currentService:
 
 parserService:
 #ENV PARSER_SERVICE_API="http://logparser:8082/logs"
-  KEY_PARSER_API : "http://localhost:8083/logs"
+  KEY_PARSER_API : "http://logparser:8082/logs"
 
 #Current service configuration
 KEY_RATE : 10

@@ -31,29 +31,29 @@
 
   <!-- Log Generator -->
   <div class="section">
-    <h3>🧾 Log Generator (http://localhost:8081)</h3>
-    
-    <button class="btn btn-outline-primary mb-2" onclick="sendRequest('GET', 'http://localhost:8081/', null, 'gen-response')">GET /</button>
+    <h3>🧾 Log Generator (http://localhost:7001)</h3>
+
+    <button class="btn btn-outline-primary mb-2" onclick="sendRequest('GET', 'http://localhost:7001/', null, 'gen-response')">GET /</button>
 
     <h5>POST /logs</h5>
     <textarea id="gen-post-body" class="form-control mb-2" rows="3">
 {
   "num_logs": 1,
-  "time": "s"
+  "unit": "s"
 }
     </textarea>
-    <button class="btn btn-success mb-3" onclick="sendRequest('POST', 'http://localhost:8081/logs', getValue('gen-post-body'), 'gen-response')">Send POST</button>
+    <button class="btn btn-success mb-3" onclick="sendRequest('POST', 'http://localhost:7001/logs', getValue('gen-post-body'), 'gen-response')">Send POST</button>
 
     <div id="gen-response" class="response-box"></div>
   </div>
 
   <!-- Log Parser -->
   <div class="section">
-    <h3>📊 Log Parser (http://localhost:8082)</h3>
+    <h3>📊 Log Parser (http://localhost:7002)</h3>
 
-    <button class="btn btn-outline-primary mb-2" onclick="sendRequest('GET', 'http://localhost:8082/', null, 'parser-response')">GET /</button>
-    <button class="btn btn-outline-info mb-2" onclick="sendRequest('GET', 'http://localhost:8082/logs', null, 'parser-response')">GET /logs</button>
-    <button class="btn btn-outline-warning mb-2" onclick="sendRequest('GET', 'http://localhost:8082/logs/count', null, 'parser-response')">GET /logs/count</button>
+    <button class="btn btn-outline-primary mb-2" onclick="sendRequest('GET', 'http://localhost:7002/', null, 'parser-response')">GET /</button>
+    <button class="btn btn-outline-info mb-2" onclick="sendRequest('GET', 'http://localhost:7002/logs', null, 'parser-response')">GET /logs</button>
+    <button class="btn btn-outline-warning mb-2" onclick="sendRequest('GET', 'http://localhost:7002/logs/count', null, 'parser-response')">GET /logs/count</button>
 
     <h5>POST /logs (Send raw logs array)</h5>
     <textarea id="parser-post-body" class="form-control mb-2" rows="5">
@@ -62,7 +62,7 @@
   "10.0.0.1 - - [2025-04-13T08:31:00Z] \"POST /login HTTP/1.1\" 404 853 \"-\" \"Mozilla/5.0...\" \"98.76.54.32\""
 ]
     </textarea>
-    <button class="btn btn-success mb-3" onclick="sendRequest('POST', 'http://localhost:8082/logs', getValue('parser-post-body'), 'parser-response')">Send POST</button>
+    <button class="btn btn-success mb-3" onclick="sendRequest('POST', 'http://localhost:7002/logs', getValue('parser-post-body'), 'parser-response')">Send POST</button>
 
     <h5>🛠 Filtered GET /logs</h5>
     <div class="row g-2 mb-2">
@@ -103,7 +103,7 @@
   }
 
   function buildFilteredURL(method = 'GET') {
-    const base = "http://localhost:8082/logs" + (method === "GET" ? "" : method === "DELETE" ? "" : "");
+    const base = "http://localhost:7002/logs" + (method === "GET" ? "" : method === "DELETE" ? "" : "");
     const params = [
       'remote_addr', 'status', 'body_bytes_sent', 'http_referer',
       'http_user_agent', 'http_x_forwarded_for', 'start_time',

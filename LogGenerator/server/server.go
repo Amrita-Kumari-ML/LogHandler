@@ -18,29 +18,33 @@ import (
 // It manages incoming requests, including checking the server's health (IsAlive) and initiating log generation tasks (LogHandler).
 //
 // Fields:
+//
 //   - ResponseW: An interface that defines the method for sending HTTP responses.
-//     - It is used to send back structured responses to the client.
+//
+//   - It is used to send back structured responses to the client.
 //
 //   - LogGen: An interface that defines the method for generating logs.
-//     - It is used to start log generation tasks and manage concurrent log generation operations.
+//
+//   - It is used to start log generation tasks and manage concurrent log generation operations.
 type ServerHandler struct {
 	ResponseW interfaces.ResponseWrite
 	LogGen    interfaces.LogGenerator
 }
 
 var cancelFunc context.CancelFunc
-var mu sync.Mutex 
+var mu sync.Mutex
 
 // IsAlive handles the "GET /alive" endpoint to check if the server is live.
 // It responds with an HTTP status code 200 and a message indicating the server's health status.
 //
 // Example usage:
-//   GET /alive
-//   Response: {
-//     "status": true,
-//     "message": "Server <port> is live",
-//     "data": null
-//   }
+//
+//	GET /alive
+//	Response: {
+//	  "status": true,
+//	  "message": "Server <port> is live",
+//	  "data": null
+//	}
 func (s *ServerHandler) IsAlive(w http.ResponseWriter, r *http.Request) {
 	s.ResponseW.SendResponse(w, http.StatusOK, true, fmt.Sprintf("Server %v is live", utils.GloablMetaData.Port), nil)
 	logger.LogDebug("Checking Log Generator Server Call!")
@@ -52,17 +56,18 @@ func (s *ServerHandler) IsAlive(w http.ResponseWriter, r *http.Request) {
 // The task will be restarted periodically based on the given duration.
 //
 // Example usage:
-//   POST /generate
-//   Request Body: {
-//     "num_logs": 1000,
-//     "unit": "m"
-//   }
 //
-//   Response: {
-//     "status": true,
-//     "message": "Task is in progress...",
-//     "data": null
-//   }
+//	POST /generate
+//	Request Body: {
+//	  "num_logs": 1000,
+//	  "unit": "m"
+//	}
+//
+//	Response: {
+//	  "status": true,
+//	  "message": "Task is in progress...",
+//	  "data": null
+//	}
 func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 	response := s.ResponseW
 	logger.LogDebug("\n Log generation is called!")
@@ -110,7 +115,7 @@ func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 	statusChan := make(chan string, 1) // Buffered so it doesn't block
 	mu.Lock()
 	if cancelFunc != nil {
-		cancelFunc() 
+		cancelFunc()
 		logger.LogWarn("Previous task canceled.")
 	}
 	mu.Unlock()
@@ -125,6 +130,41 @@ func (s *ServerHandler) LogHandler(w http.ResponseWriter, r *http.Request) {
 		response.SendResponse(w, http.StatusRequestTimeout, false, "No status received in time", nil)
 		logger.LogWarn("No status received in time")
 	}
+}
+
+// StopHandler handles the "POST /logs/stop" endpoint to stop ongoing log generation.
+func (s *ServerHandler) StopHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.ResponseW.SendResponse(w, http.StatusMethodNotAllowed, false, "Only POST method allowed", nil)
+		return
+	}
+
+	mu.Lock()
+	if cancelFunc != nil {
+		cancelFunc()
+		cancelFunc = nil
+		mu.Unlock()
+		s.ResponseW.SendResponse(w, http.StatusOK, true, "Log generation stopped", nil)
+		return
+	}
+	mu.Unlock()
+	s.ResponseW.SendResponse(w, http.StatusOK, true, "No active log generation task", nil)
+}
+
+// StatusHandler handles the "GET /logs/status" endpoint to report if generation is active.
+func (s *ServerHandler) StatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		s.ResponseW.SendResponse(w, http.StatusMethodNotAllowed, false, "Only GET method allowed", nil)
+		return
+	}
+	mu.Lock()
+	active := cancelFunc != nil
+	mu.Unlock()
+	msg := "idle"
+	if active {
+		msg = "running"
+	}
+	s.ResponseW.SendResponse(w, http.StatusOK, true, fmt.Sprintf("generation is %s", msg), map[string]bool{"active": active})
 }
 
 // startLogGenerationTask starts the log generation task in the background.

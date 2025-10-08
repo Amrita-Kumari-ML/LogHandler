@@ -4,10 +4,10 @@ services:
   loggenerate:
     container_name: loggenerate
     build:
-      context: /home/amrita_kumari/LogHandler/LogGenerator
-      dockerfile: Dockerfile 
+      context: ./LogGenerator
+      dockerfile: Dockerfile
     ports:
-      - "8081:8081"
+      - "7001:8081"
     environment:
       - GENERATOR_HOST=${GENERATOR_HOST}
       - GENERATOR_PORT=${GENERATOR_PORT}
@@ -25,10 +25,10 @@ services:
   logparser:
     container_name: logparser
     build:
-      context: /home/amrita_kumari/LogHandler/LogParser
-      dockerfile: Dockerfile 
+      context: ./LogParser
+      dockerfile: Dockerfile
     ports:
-      - "8082:8082"
+      - "7002:8082"
     environment:
       - PARSER_HOST=${PARSER_HOST}
       - PARSER_PORT=${PARSER_PORT}
@@ -57,9 +57,83 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - "7003:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lognetwork
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "7004:80"
+    networks:
+      - lognetwork
+    depends_on:
+      - logparser
+
+
+  # Container metrics (cAdvisor)
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped
+    networks:
+      - lognetwork
+
+  # Prometheus time-series DB
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    depends_on:
+      - cadvisor
+    networks:
+      - lognetwork
+
+  # Grafana UI
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - lognetwork
+
+  # Postgres exporter (DB metrics)
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres_exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
+    ports:
+      - "9187:9187"
+    depends_on:
+      - postgres
     networks:
       - lognetwork
 
@@ -71,4 +145,8 @@ volumes:
   postgres_data:
     driver: local
   log_data:  # Define volume for storing rate and unit data
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local

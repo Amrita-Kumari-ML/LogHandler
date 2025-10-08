@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  # Scrape cAdvisor for container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # Scrape Postgres exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Future: app metrics (enable once /metrics exposed)
+  # - job_name: 'logparser'
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ['logparser:8082']
+  # - job_name: 'loggenerate'
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ['loggenerate:8081']
+

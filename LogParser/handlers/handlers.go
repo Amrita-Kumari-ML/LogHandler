@@ -434,3 +434,290 @@ func Atoi(str string) int {
 	i, _ := strconv.Atoi(str)
 	return i
 }
+
+// GetStatusStatsHandler returns statistics grouped by HTTP status codes
+func GetStatusStatsHandler(w http.ResponseWriter, r *http.Request) {
+	logger.LogDebug("Get status stats hit!")
+
+	isAlive, db := connection.PingDB()
+	if !isAlive {
+		models.SendResponse(w, http.StatusInternalServerError, false, "Failed to connect to Database!", nil)
+		return
+	}
+
+	query := `
+		SELECT status, COUNT(*) as count, AVG(body_bytes_sent) as avg_bytes
+		FROM logs
+		GROUP BY status
+		ORDER BY count DESC
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		logger.LogWarn(fmt.Sprintf("Failed to query database: %v", err))
+		models.SendResponse(w, http.StatusInternalServerError, false, fmt.Sprintf("Failed to query database: %v", err), nil)
+		return
+	}
+	defer rows.Close()
+
+	type StatusStat struct {
+		Status    int     `json:"status"`
+		Count     int     `json:"count"`
+		AvgBytes  float64 `json:"avg_bytes"`
+	}
+
+	var stats []StatusStat
+	for rows.Next() {
+		var stat StatusStat
+		err := rows.Scan(&stat.Status, &stat.Count, &stat.AvgBytes)
+		if err != nil {
+			logger.LogWarn(fmt.Sprintf("Error scanning row: %v", err))
+			continue
+		}
+		stats = append(stats, stat)
+	}
+
+	models.SendResponse(w, http.StatusOK, true, "Status statistics retrieved successfully", stats)
+}
+
+// GetIPStatsHandler returns statistics grouped by IP addresses
+func GetIPStatsHandler(w http.ResponseWriter, r *http.Request) {
+	logger.LogDebug("Get IP stats hit!")
+
+	isAlive, db := connection.PingDB()
+	if !isAlive {
+		models.SendResponse(w, http.StatusInternalServerError, false, "Failed to connect to Database!", nil)
+		return
+	}
+
+	query := `
+		SELECT remote_addr, COUNT(*) as request_count,
+		       AVG(body_bytes_sent) as avg_bytes,
+		       MIN(time_local) as first_request,
+		       MAX(time_local) as last_request
+		FROM logs
+		GROUP BY remote_addr
+		ORDER BY request_count DESC
+		LIMIT 50
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		logger.LogWarn(fmt.Sprintf("Failed to query database: %v", err))
+		models.SendResponse(w, http.StatusInternalServerError, false, fmt.Sprintf("Failed to query database: %v", err), nil)
+		return
+	}
+	defer rows.Close()
+
+	type IPStat struct {
+		IPAddress     string    `json:"ip_address"`
+		RequestCount  int       `json:"request_count"`
+		AvgBytes      float64   `json:"avg_bytes"`
+		FirstRequest  time.Time `json:"first_request"`
+		LastRequest   time.Time `json:"last_request"`
+	}
+
+	var stats []IPStat
+	for rows.Next() {
+		var stat IPStat
+		err := rows.Scan(&stat.IPAddress, &stat.RequestCount, &stat.AvgBytes, &stat.FirstRequest, &stat.LastRequest)
+		if err != nil {
+			logger.LogWarn(fmt.Sprintf("Error scanning row: %v", err))
+			continue
+		}
+		stats = append(stats, stat)
+	}
+
+	models.SendResponse(w, http.StatusOK, true, "IP statistics retrieved successfully", stats)
+}
+
+// GetTimeStatsHandler returns time-based analytics (hourly/daily patterns)
+func GetTimeStatsHandler(w http.ResponseWriter, r *http.Request) {
+	logger.LogDebug("Get time stats hit!")
+
+	isAlive, db := connection.PingDB()
+	if !isAlive {
+		models.SendResponse(w, http.StatusInternalServerError, false, "Failed to connect to Database!", nil)
+		return
+	}
+
+	// Get query parameter for grouping (hour, day, month)
+	groupBy := r.URL.Query().Get("group_by")
+	if groupBy == "" {
+		groupBy = "hour" // default to hourly
+	}
+
+	var query string
+	switch groupBy {
+	case "hour":
+		query = `
+			SELECT EXTRACT(hour FROM time_local) as time_unit, COUNT(*) as request_count,
+			       AVG(body_bytes_sent) as avg_bytes
+			FROM logs
+			GROUP BY EXTRACT(hour FROM time_local)
+			ORDER BY time_unit
+		`
+	case "day":
+		query = `
+			SELECT DATE(time_local) as time_unit, COUNT(*) as request_count,
+			       AVG(body_bytes_sent) as avg_bytes
+			FROM logs
+			GROUP BY DATE(time_local)
+			ORDER BY time_unit DESC
+			LIMIT 30
+		`
+	case "month":
+		query = `
+			SELECT DATE_TRUNC('month', time_local) as time_unit, COUNT(*) as request_count,
+			       AVG(body_bytes_sent) as avg_bytes
+			FROM logs
+			GROUP BY DATE_TRUNC('month', time_local)
+			ORDER BY time_unit DESC
+		`
+	default:
+		models.SendResponse(w, http.StatusBadRequest, false, "Invalid group_by parameter. Use: hour, day, or month", nil)
+		return
+	}
+
+	rows, err := db.Query(query)
+	if err != nil {
+		logger.LogWarn(fmt.Sprintf("Failed to query database: %v", err))
+		models.SendResponse(w, http.StatusInternalServerError, false, fmt.Sprintf("Failed to query database: %v", err), nil)
+		return
+	}
+	defer rows.Close()
+
+	type TimeStat struct {
+		TimeUnit     interface{} `json:"time_unit"`
+		RequestCount int         `json:"request_count"`
+		AvgBytes     float64     `json:"avg_bytes"`
+	}
+
+	var stats []TimeStat
+	for rows.Next() {
+		var stat TimeStat
+		err := rows.Scan(&stat.TimeUnit, &stat.RequestCount, &stat.AvgBytes)
+		if err != nil {
+			logger.LogWarn(fmt.Sprintf("Error scanning row: %v", err))
+			continue
+		}
+		stats = append(stats, stat)
+	}
+
+	response := map[string]interface{}{
+		"group_by": groupBy,
+		"data":     stats,
+	}
+
+	models.SendResponse(w, http.StatusOK, true, "Time statistics retrieved successfully", response)
+}
+
+// GetDashboardStatsHandler returns comprehensive dashboard statistics
+func GetDashboardStatsHandler(w http.ResponseWriter, r *http.Request) {
+	logger.LogDebug("Get dashboard stats hit!")
+
+	isAlive, db := connection.PingDB()
+	if !isAlive {
+		models.SendResponse(w, http.StatusInternalServerError, false, "Failed to connect to Database!", nil)
+		return
+	}
+
+	// Get total logs count
+	var totalLogs int
+	err := db.QueryRow("SELECT COUNT(*) FROM logs").Scan(&totalLogs)
+	if err != nil {
+		logger.LogWarn(fmt.Sprintf("Error fetching total logs: %v", err))
+	}
+
+	// Get unique IPs count
+	var uniqueIPs int
+	err = db.QueryRow("SELECT COUNT(DISTINCT remote_addr) FROM logs").Scan(&uniqueIPs)
+	if err != nil {
+		logger.LogWarn(fmt.Sprintf("Error fetching unique IPs: %v", err))
+	}
+
+	// Get average response size
+	var avgResponseSize float64
+	err = db.QueryRow("SELECT AVG(body_bytes_sent) FROM logs").Scan(&avgResponseSize)
+	if err != nil {
+		logger.LogWarn(fmt.Sprintf("Error fetching average response size: %v", err))
+	}
+
+	// Get most recent log time
+	var lastLogTime time.Time
+	err = db.QueryRow("SELECT MAX(time_local) FROM logs").Scan(&lastLogTime)
+	if err != nil {
+		logger.LogWarn(fmt.Sprintf("Error fetching last log time: %v", err))
+	}
+
+	// Get top 5 status codes
+	statusQuery := `
+		SELECT status, COUNT(*) as count
+		FROM logs
+		GROUP BY status
+		ORDER BY count DESC
+		LIMIT 5
+	`
+	statusRows, err := db.Query(statusQuery)
+	if err != nil {
+		logger.LogWarn(fmt.Sprintf("Error fetching status stats: %v", err))
+	}
+	defer statusRows.Close()
+
+	type StatusCount struct {
+		Status int `json:"status"`
+		Count  int `json:"count"`
+	}
+
+	var topStatuses []StatusCount
+	for statusRows.Next() {
+		var sc StatusCount
+		err := statusRows.Scan(&sc.Status, &sc.Count)
+		if err != nil {
+			logger.LogWarn(fmt.Sprintf("Error scanning status row: %v", err))
+			continue
+		}
+		topStatuses = append(topStatuses, sc)
+	}
+
+	// Get top 5 IPs
+	ipQuery := `
+		SELECT remote_addr, COUNT(*) as count
+		FROM logs
+		GROUP BY remote_addr
+		ORDER BY count DESC
+		LIMIT 5
+	`
+	ipRows, err := db.Query(ipQuery)
+	if err != nil {
+		logger.LogWarn(fmt.Sprintf("Error fetching IP stats: %v", err))
+	}
+	defer ipRows.Close()
+
+	type IPCount struct {
+		IP    string `json:"ip"`
+		Count int    `json:"count"`
+	}
+
+	var topIPs []IPCount
+	for ipRows.Next() {
+		var ic IPCount
+		err := ipRows.Scan(&ic.IP, &ic.Count)
+		if err != nil {
+			logger.LogWarn(fmt.Sprintf("Error scanning IP row: %v", err))
+			continue
+		}
+		topIPs = append(topIPs, ic)
+	}
+
+	dashboardData := map[string]interface{}{
+		"total_logs":         totalLogs,
+		"unique_ips":         uniqueIPs,
+		"avg_response_size":  avgResponseSize,
+		"last_log_time":      lastLogTime,
+		"top_status_codes":   topStatuses,
+		"top_ips":           topIPs,
+	}
+
+	models.SendResponse(w, http.StatusOK, true, "Dashboard statistics retrieved successfully", dashboardData)
+}
